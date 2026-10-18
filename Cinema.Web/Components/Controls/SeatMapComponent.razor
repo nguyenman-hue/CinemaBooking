@@ -367,7 +367,7 @@
 
                 try
                 {
-                    SeatBookingRule.ValidateInteractiveSeatSelection(domainSeats, candidateSeatIds, unavailable);
+                    SeatBookingRule.ValidateNoSingleOrphanSeat(domainSeats, candidateSeatIds, unavailable);
                 }
                 catch (SeatConflictException ex)
                 {
@@ -409,7 +409,7 @@
 
             try
             {
-                SeatBookingRule.ValidateInteractiveSeatSelection(domainSeats, candidateSeatIds, unavailable);
+                SeatBookingRule.ValidateNoSingleOrphanSeat(domainSeats, candidateSeatIds, unavailable);
             }
             catch (SeatConflictException ex)
             {
