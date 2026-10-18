@@ -14,8 +14,8 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
     private readonly IMovieRepository _movieRepository;
     private readonly IShowtimeRepository _showtimeRepository;
     private readonly HttpClient? _httpClient;
-    private readonly string? _geminiApiKey;
     private readonly string _geminiModel;
+    private readonly string _effectiveApiKey;
 
     public SemanticMovieSearchUseCase(
         IMovieRepository movieRepository,
@@ -27,8 +27,8 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         _movieRepository = movieRepository;
         _showtimeRepository = showtimeRepository;
         _httpClient = httpClient;
-        _geminiApiKey = geminiApiKey;
         _geminiModel = string.IsNullOrWhiteSpace(geminiModel) ? "gemini-2.5-flash" : geminiModel;
+        _effectiveApiKey = (!string.IsNullOrWhiteSpace(geminiApiKey) && geminiApiKey != "YOUR_GEMINI_API_KEY") ? geminiApiKey : (Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? "");
     }
 
     public async Task<List<AiMovieRecommendationDto>> ExecuteAsync(string naturalLanguageQuery, DateTime? preferredDate = null)
@@ -45,12 +45,12 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         var (timeFilterStart, timeFilterEnd, timeReason) = DetectTimePreference(normalizedQuery);
         var targetDate = preferredDate ?? DetectTargetDate(normalizedQuery);
 
-        // Gọi Google Gemini 2.5 Flash nếu có cấu hình API Key thực tế
-        if (!string.IsNullOrWhiteSpace(_geminiApiKey) && _geminiApiKey != "YOUR_GEMINI_API_KEY" && _httpClient != null)
+        // Uu tien goi Google Gemini 2.5 Flash de doc hieu tu nhien moi cau hoi (nhu ChatGPT)
+        if (!string.IsNullOrWhiteSpace(_effectiveApiKey) && _effectiveApiKey != "YOUR_GEMINI_API_KEY" && _httpClient != null)
         {
             try
             {
-                var geminiResults = await TryCallGeminiAsync(naturalLanguageQuery, activeMovies, allShowtimes, targetDate, timeFilterStart, timeFilterEnd, timeReason);
+                var geminiResults = await TryCallGeminiAsync(naturalLanguageQuery, normalizedQuery, activeMovies, allShowtimes, targetDate, timeFilterStart, timeFilterEnd, timeReason);
                 if (geminiResults != null && geminiResults.Any())
                 {
                     return geminiResults;
@@ -58,7 +58,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Gemini Fallback] Lỗi API: {ex.Message}. Chuyển sang Smart Local Semantic Engine.");
+                Console.WriteLine($"[Gemini Fallback] Loi API: {ex.Message}. Chuyen sang Smart Local Semantic Engine.");
             }
         }
 
@@ -67,6 +67,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
 
     private async Task<List<AiMovieRecommendationDto>?> TryCallGeminiAsync(
         string userQuery, 
+        string normalizedQuery,
         List<Movie> movies, 
         List<Showtime> allShowtimes, 
         DateTime targetDate, 
@@ -75,16 +76,27 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         string timeReason)
     {
         var moviesSummary = string.Join("\n", movies.Select(m => 
-            $"- ID {m.MovieId}: \"{m.Title}\" (Đạo diễn: {m.Director}, Diễn viên: {m.Cast}, Thể loại: {m.Genre}, Độ tuổi: {m.AgeRating}, Thời lượng: {m.DurationMinutes} phút). Mô tả: {m.Description}"));
+        {
+            var mShowtimes = allShowtimes
+                .Where(st => st.MovieId == m.MovieId)
+                .OrderBy(st => st.StartTime)
+                .Select(st => $"{st.StartTime:HH:mm} (ngay {st.StartTime:dd/MM})")
+                .Distinct()
+                .ToList();
+            var showtimesStr = mShowtimes.Any() ? string.Join(", ", mShowtimes) : "Hien chua co lich chieu";
+            return $"- ID {m.MovieId}: \"{m.Title}\" (Dao dien: {m.Director}, Dien vien: {m.Cast}, The loai: {m.Genre}, Do tuoi: {m.AgeRating}, Thoi luong: {m.DurationMinutes} phut). Lich chieu: [{showtimesStr}]. Mo ta: {m.Description}";
+        }));
 
-        var systemPrompt = "Bạn là Trợ lý AI điện ảnh thông minh của rạp Starlight Cinema Huế.\n" +
-            "Danh sách các bộ phim đang chiếu tại rạp:\n" + moviesSummary + "\n\n" +
-            "Câu hỏi người dùng: \"" + userQuery + "\"\n\n" +
-            "Nhiệm vụ:\n" +
-            "1. Hiểu ngữ nghĩa, đạo diễn, diễn viên, cảm xúc và thể loại trong câu hỏi để chọn các bộ phim phù hợp nhất.\n" +
-            "2. Với mỗi phim được chọn, chấm điểm phù hợp (score từ 65 đến 99) và viết 1 câu giải thích lý do ngắn gọn, thân thiện bằng tiếng Việt.\n" +
-            "3. Trả về ĐÚNG định dạng JSON thuần túy (không dùng markdown, không có chữ thừa), theo mẫu:\n" +
-            "[{\"movieId\": 2, \"score\": 96, \"reason\": \"Phim hoạt hình nhẹ nhàng nhãn P rất phù hợp cho gia đình có trẻ nhỏ cùng xem vui vẻ.\"}]";
+        var systemPrompt = 
+            "Ban la Tro ly AI dien anh thong minh cua rap Starlight Cinema Hue (tuong tu nhu ChatGPT chuyen ve dien anh).\n" +
+            "Duoi day la toan bo danh sach cac bo phim va lich chieu thuc te tai rap:\n" + moviesSummary + "\n\n" +
+            "Khach hang hoi / tro chuyen: \"" + userQuery + "\"\n\n" +
+            "Nhiem vu cua ban:\n" +
+            "1. Doc hieu toan dien ngu nghia, thoi gian (chieu muon nhat, chieu som nhat, buoi sang, trua, toi, khuya...), cam xuc (xa stress, khoc, cuoi, that tinh...), dien vien, dao dien, hoac bat ky phong cach dien dat tu nhien nao cua khach hang (ke ca tieng long, vi von, tu ngu la).\n" +
+            "2. Tu danh sach phim va lich chieu o tren, chon ra tu 1 den 4 bo phim phu hop nhat voi mong muon cua khach hang.\n" +
+            "3. Voi moi phim duoc chon, cham diem phu hop (score tu 70 den 99) va viet 1 cau giai thich ly do ngan gon (reason), tu nhien, than thien bang tieng Viet xung 'minh' hoac 'rap'. Neu khach hoi ve gio chieu (vi du: chieu muon nhat, chieu sau 21h...), ban BAT BUOC phai chi ro gio chieu cu the cua phim do trong cau giai thich (vi du: 'Suat 23:55 la suat muon nhat rap hom nay...').\n" +
+            "4. BAT BUOC chi tra ve dung dinh dang JSON thuan tuy (khong kem chu thua mo dau hay ket thuc), theo mau:\n" +
+            "[{\"movieId\": 1, \"score\": 98, \"reason\": \"Cau giai thich than thien cho khach hang...\"}]";
 
         var requestBody = new
         {
@@ -101,9 +113,9 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         };
 
         var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_geminiModel}:generateContent?key={_geminiApiKey}";
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_geminiModel}:generateContent?key={_effectiveApiKey}";
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var response = await _httpClient!.PostAsync(url, jsonContent, cts.Token);
         if (!response.IsSuccessStatusCode)
         {
@@ -126,6 +138,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         using var jsonParsed = JsonDocument.Parse(jsonClean);
 
         var recommendations = new List<AiMovieRecommendationDto>();
+        bool isLateQuery = normalizedQuery.Contains("muon") || normalizedQuery.Contains("khuya") || normalizedQuery.Contains("toi muon");
 
         foreach (var item in jsonParsed.RootElement.EnumerateArray())
         {
@@ -141,17 +154,18 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
                     var movieShowtimes = allShowtimes
                         .Where(st => st.MovieId == movie.MovieId)
                         .Where(st => st.StartTime.Date == targetDate.Date)
-                        .Where(st => st.StartTime.TimeOfDay >= timeStart && st.StartTime.TimeOfDay <= timeEnd)
-                        .OrderBy(st => st.StartTime)
-                        .ToList();
+                        .Where(st => st.StartTime.TimeOfDay >= timeStart && st.StartTime.TimeOfDay <= timeEnd);
 
-                    if (!movieShowtimes.Any())
+                    var showtimesList = isLateQuery
+                        ? movieShowtimes.OrderByDescending(st => st.StartTime).ToList()
+                        : movieShowtimes.OrderBy(st => st.StartTime).ToList();
+
+                    if (!showtimesList.Any())
                     {
-                        movieShowtimes = allShowtimes
-                            .Where(st => st.MovieId == movie.MovieId)
-                            .OrderBy(st => st.StartTime)
-                            .Take(4)
-                            .ToList();
+                        var fallbackShowtimes = allShowtimes.Where(st => st.MovieId == movie.MovieId);
+                        showtimesList = isLateQuery
+                            ? fallbackShowtimes.OrderByDescending(st => st.StartTime).Take(4).ToList()
+                            : fallbackShowtimes.OrderBy(st => st.StartTime).Take(4).ToList();
                     }
 
                     recommendations.Add(new AiMovieRecommendationDto
@@ -159,7 +173,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
                         Movie = movie,
                         RelevanceScore = score,
                         MatchReason = string.IsNullOrWhiteSpace(timeReason) ? reason : $"{reason}. {timeReason}",
-                        SuggestedShowtimes = movieShowtimes
+                        SuggestedShowtimes = showtimesList
                     });
                 }
             }
@@ -170,11 +184,15 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
 
     private string CleanJson(string text)
     {
+        if (string.IsNullOrWhiteSpace(text)) return "[]";
         text = text.Trim();
-        if (text.StartsWith("```json")) text = text.Substring(7);
-        else if (text.StartsWith("```")) text = text.Substring(3);
-        if (text.EndsWith("```")) text = text.Substring(0, text.Length - 3);
-        return text.Trim();
+        int startIndex = text.IndexOf('[');
+        int endIndex = text.LastIndexOf(']');
+        if (startIndex >= 0 && endIndex > startIndex)
+        {
+            return text.Substring(startIndex, endIndex - startIndex + 1);
+        }
+        return text;
     }
 
     private List<AiMovieRecommendationDto> RunSmartSemanticSearch(
