@@ -1,7 +1,8 @@
-﻿@using Cinema.UseCases.AI
+@using Cinema.UseCases.AI
 @using Cinema.UseCases.DTOs
 @inject ISemanticMovieSearchUseCase SemanticSearchUseCase
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <!-- Floating Trigger Button (Góc dưới bên phải) -->
 <button type="button" class="ai-floating-btn" @onclick="ToggleChat">
@@ -21,33 +22,26 @@
         <!-- Header -->
         <div class="ai-chat-header">
             <div class="d-flex align-items-center gap-2">
-                <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
                      style="width: 36px; height: 36px; background: linear-gradient(135deg, #ec4899, #8b5cf6);">
-                    <i class="bi bi-robot text-white"></i>
+                    <i class="bi bi-robot text-white fs-5"></i>
                 </div>
                 <div>
-                    <h6 class="mb-0 fw-bold text-white">Trợ Lý AI Điện Ảnh</h6>
-                    <div class="d-flex align-items-center gap-1 mt-1"><span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25" style="font-size: 0.65rem;"><i class="bi bi-stars"></i> Powered by Google Gemini 2.5 Flash</span></div>
+                    <h6 class="mb-0 fw-bold text-white" style="font-size: 0.95rem;">Trợ Lý AI Điện Ảnh</h6>
+                    <div class="d-flex align-items-center gap-1 mt-1">
+                        <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25" style="font-size: 0.65rem;">
+                            <i class="bi bi-stars"></i> Powered by Google Gemini 2.5 Flash
+                        </span>
+                    </div>
                 </div>
             </div>
-            <button type="button" class="btn btn-sm btn-link text-white-50 p-0 text-decoration-none fs-5" @onclick="ToggleChat">
+            <button type="button" class="btn btn-sm btn-link text-white-50 p-0 text-decoration-none fs-5" @onclick="ToggleChat" title="Đóng cửa sổ">
                 <i class="bi bi-x-circle"></i>
             </button>
         </div>
 
-        <!-- Chat Body -->
-        <div class="ai-chat-body">
-            <!-- Welcome message bubble -->
-            <div class="p-3 rounded-4 mb-3" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
-                <div class="d-flex align-items-center gap-2 mb-1 text-warning fw-bold small">
-                    <i class="bi bi-stars"></i>
-                    <span>Starlight AI chào bạn!</span>
-                </div>
-                <div class="small" style="color: #e2e8f0; line-height: 1.5;">
-                    Bạn muốn tìm phim thế nào? Hãy nói mong muốn của bạn (ví dụ: <em>"phim nhẹ nhàng cho gia đình"</em>, <em>"bom tấn tối nay"</em>) em sẽ gợi ý phim và suất chiếu hợp nhất!
-                </div>
-            </div>
-
+        <!-- Chat Body (Messenger / ChatGPT Stream) -->
+        <div class="ai-chat-body" id="aiChatBody">
             <!-- Quick Prompt Chips -->
             <div class="mb-3">
                 <div class="small mb-2" style="color: #94a3b8; font-size: 0.78rem;">
@@ -57,101 +51,127 @@
                     <button type="button" class="btn btn-sm text-nowrap rounded-pill py-1 px-2" 
                             style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; font-size: 0.78rem;"
                             @onclick='() => SetPrompt("phim nhẹ nhàng cho gia đình")'>
-                        🍿 Phim nhẹ nhàng gia đình
+                        🍿 Phim gia đình nhẹ nhàng
                     </button>
                     <button type="button" class="btn btn-sm text-nowrap rounded-pill py-1 px-2" 
                             style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; font-size: 0.78rem;"
                             @onclick='() => SetPrompt("bom tấn hành động kịch tính tối nay")'>
-                        💥 Bom tấn hành động tối nay
+                        💥 Bom tấn hành động
                     </button>
                     <button type="button" class="btn btn-sm text-nowrap rounded-pill py-1 px-2" 
                             style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; font-size: 0.78rem;"
-                            @onclick='() => SetPrompt("phim tâm lý tình cảm sâu lắng")'>
-                        ❤️ Phim tâm lý tình cảm
+                            @onclick='() => SetPrompt("chọn phim chiếu muộn nhất rạp")'>
+                        🌙 Phim chiếu muộn nhất
                     </button>
                 </div>
             </div>
 
-            <!-- AI Response Section -->
-            @if (_isSearching)
+            <!-- Messages Stream -->
+            @foreach (var msg in _messages)
             {
-                <div class="text-center py-4">
-                    <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
-                    <div class="small mt-2" style="color: #94a3b8;">AI đang đọc ngữ nghĩa và tìm suất chiếu...</div>
-                </div>
-            }
-            else if (_hasSearched)
-            {
-                @if (_recommendations.Count == 0)
+                if (msg.IsUser)
                 {
-                    <div class="alert alert-dark p-2 small border-secondary text-white rounded-3">
-                        <i class="bi bi-info-circle me-1 text-warning"></i>
-                        Chưa tìm thấy phim khớp câu này. Hãy thử từ khóa "gia đình", "hành động", "tình cảm" nhé!
+                    <!-- User Message Bubble (Right-aligned, Messenger style) -->
+                    <div class="d-flex justify-content-end mb-3">
+                        <div class="py-2 px-3 rounded-4 shadow-sm" 
+                             style="max-width: 82%; background: linear-gradient(135deg, #ec4899, #8b5cf6); color: #fff; font-size: 0.85rem; line-height: 1.45; word-break: break-word; white-space: pre-wrap; border-bottom-right-radius: 4px !important;">
+                            @msg.Text
+                        </div>
                     </div>
                 }
                 else
                 {
-                    <div class="small fw-bold text-warning mb-2 d-flex align-items-center gap-1">
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>AI Gợi Ý @(_recommendations.Count) Phim Phù Hợp:</span>
-                    </div>
-
-                    @foreach (var rec in _recommendations)
-                    {
-                        <div class="p-2 mb-2 rounded-3" style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.1);">
-                            <div class="d-flex gap-2">
-                                <img src="@rec.Movie.PosterUrl" alt="@rec.Movie.Title" 
-                                     class="rounded-2 object-fit-cover" style="width: 50px; height: 70px;" />
-                                <div class="flex-grow-1" style="min-width: 0;">
-                                    <div class="d-flex align-items-center justify-content-between gap-1">
-                                        <strong class="text-white small text-truncate">@rec.Movie.Title</strong>
-                                        <span class="badge bg-success bg-opacity-75" style="font-size: 0.68rem;">
-                                            @rec.RelevanceScore%
-                                        </span>
-                                    </div>
-                                    <div class="small" style="font-size: 0.72rem; color: #94a3b8;">
-                                        @rec.Movie.Genre | @rec.Movie.AgeRating
-                                    </div>
-                                    <div class="p-1 rounded mt-1" style="background: rgba(99, 102, 241, 0.15); font-size: 0.7rem; color: #cbd5e1;">
-                                        <i class="bi bi-robot text-info me-1"></i>@rec.MatchReason
-                                    </div>
-                                </div>
+                    <!-- AI Message Bubble (Left-aligned, Messenger style) -->
+                    <div class="d-flex justify-content-start gap-2 mb-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1 shadow-sm"
+                             style="width: 30px; height: 30px; background: linear-gradient(135deg, #6366f1, #8b5cf6); font-size: 0.8rem;">
+                            <i class="bi bi-robot text-white"></i>
+                        </div>
+                        <div style="max-width: 85%;">
+                            <div class="py-2 px-3 rounded-4 mb-2 shadow-sm"
+                                 style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); color: #e2e8f0; font-size: 0.85rem; line-height: 1.45; border-bottom-left-radius: 4px !important;">
+                                @msg.Text
                             </div>
 
-                            <!-- Showtimes Chips -->
-                            @if (rec.SuggestedShowtimes.Any())
+                            <!-- Movie Cards (if any) -->
+                            @if (msg.Recommendations != null && msg.Recommendations.Any())
                             {
-                                <div class="mt-2 pt-2 border-top border-white border-opacity-10 d-flex flex-wrap gap-1 align-items-center">
-                                    <small style="font-size: 0.68rem; color: #f59e0b;" class="fw-bold">Suất chiếu:</small>
-                                    @foreach (var st in rec.SuggestedShowtimes.Take(3))
-                                    {
-                                        <a href="/booking/@st.ShowtimeId" 
-                                           class="btn btn-sm btn-outline-warning py-0 px-2 rounded-pill fw-bold" 
-                                           style="font-size: 0.7rem; text-decoration: none;">
-                                            @st.StartTime.ToString("HH:mm")
-                                        </a>
-                                    }
-                                </div>
+                                @foreach (var rec in msg.Recommendations)
+                                {
+                                    <div class="p-2 mb-2 rounded-3 shadow-sm" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(139, 92, 246, 0.25);">
+                                        <div class="d-flex gap-2">
+                                            <img src="@rec.Movie.PosterUrl" alt="@rec.Movie.Title" 
+                                                 class="rounded-2 object-fit-cover flex-shrink-0" style="width: 50px; height: 72px;" />
+                                            <div class="flex-grow-1" style="min-width: 0;">
+                                                <div class="d-flex align-items-center justify-content-between gap-1">
+                                                    <strong class="text-white small text-truncate">@rec.Movie.Title</strong>
+                                                    <span class="badge bg-success bg-opacity-75" style="font-size: 0.68rem;">
+                                                        @rec.RelevanceScore%
+                                                    </span>
+                                                </div>
+                                                <div class="small" style="font-size: 0.72rem; color: #94a3b8;">
+                                                    @rec.Movie.Genre | @rec.Movie.AgeRating
+                                                </div>
+                                                <div class="p-1 rounded mt-1" style="background: rgba(99, 102, 241, 0.15); font-size: 0.72rem; color: #cbd5e1; line-height: 1.35;">
+                                                    <i class="bi bi-robot text-info me-1"></i>@rec.MatchReason
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Showtimes Chips -->
+                                        @if (rec.SuggestedShowtimes.Any())
+                                        {
+                                            <div class="mt-2 pt-2 border-top border-white border-opacity-10 d-flex flex-wrap gap-1 align-items-center">
+                                                <small style="font-size: 0.68rem; color: #f59e0b;" class="fw-bold">Suất chiếu:</small>
+                                                @foreach (var st in rec.SuggestedShowtimes.Take(4))
+                                                {
+                                                    <a href="/booking/@st.ShowtimeId" 
+                                                       class="btn btn-sm btn-outline-warning py-0 px-2 rounded-pill fw-bold" 
+                                                       style="font-size: 0.7rem; text-decoration: none;">
+                                                        @st.StartTime.ToString("HH:mm")
+                                                    </a>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
                             }
                         </div>
-                    }
+                    </div>
                 }
+            }
+
+            <!-- Typing indicator when AI is generating -->
+            @if (_isSearching)
+            {
+                <div class="d-flex justify-content-start gap-2 mb-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1 shadow-sm"
+                         style="width: 30px; height: 30px; background: linear-gradient(135deg, #6366f1, #8b5cf6); font-size: 0.8rem;">
+                        <i class="bi bi-robot text-white"></i>
+                    </div>
+                    <div class="py-2 px-3 rounded-4 d-flex align-items-center gap-2 shadow-sm"
+                         style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); color: #94a3b8; font-size: 0.8rem; border-bottom-left-radius: 4px !important;">
+                        <span class="spinner-grow spinner-grow-sm text-warning" style="width: 8px; height: 8px;" role="status"></span>
+                        <span>AI đang phân tích và tìm suất chiếu...</span>
+                    </div>
+                </div>
             }
         </div>
 
-        <!-- Chat Input Footer -->
+        <!-- Chat Input Footer (Clear on send like Messenger) -->
         <div class="ai-chat-footer">
             <div class="input-group">
-                <input type="text" class="form-control form-control-sm border-0" 
-                       style="background: #1e293b; color: #fff;"
-                       placeholder="Nhập mong muốn xem phim..."
+                <input type="text" class="form-control form-control-sm border-0 shadow-none" 
+                       style="background: #1e293b; color: #fff; padding: 0.55rem 0.85rem;"
+                       placeholder="Nhắn tin cho AI (Enter để gửi)..."
                        @bind="_query" 
                        @bind:event="oninput"
                        @onkeydown="HandleKeyDown" />
-                <button class="btn btn-warning btn-sm fw-bold px-3 text-dark" 
+                <button class="btn btn-warning btn-sm fw-bold px-3 text-dark d-flex align-items-center justify-content-center" 
                         type="button" 
-                        disabled="@_isSearching"
-                        @onclick="ExecuteSearch">
+                        disabled="@(_isSearching || string.IsNullOrWhiteSpace(_query))"
+                        @onclick="ExecuteSearch"
+                        title="Gửi tin nhắn">
                     <i class="bi bi-send-fill"></i>
                 </button>
             </div>
@@ -160,15 +180,34 @@
 }
 
 @code {
+    public class AiChatMessageItem
+    {
+        public bool IsUser { get; set; }
+        public string Text { get; set; } = "";
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public List<AiMovieRecommendationDto>? Recommendations { get; set; }
+    }
+
     private bool _isOpen = false;
     private string _query = "";
     private bool _isSearching = false;
-    private bool _hasSearched = false;
-    private List<AiMovieRecommendationDto> _recommendations = new();
+
+    private List<AiChatMessageItem> _messages = new()
+    {
+        new AiChatMessageItem
+        {
+            IsUser = false,
+            Text = "Starlight AI chào bạn! Bạn muốn tìm phim thế nào? Hãy nói mong muốn của bạn (ví dụ: 'phim nhẹ nhàng cho gia đình', 'bom tấn tối nay', 'phim chiếu muộn nhất') em sẽ gợi ý phim và suất chiếu hợp nhất nhé! 🍿"
+        }
+    };
 
     private void ToggleChat()
     {
         _isOpen = !_isOpen;
+        if (_isOpen)
+        {
+            _ = ScrollToBottom();
+        }
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -187,21 +226,62 @@
 
     private async Task ExecuteSearch()
     {
-        if (string.IsNullOrWhiteSpace(_query)) return;
+        if (string.IsNullOrWhiteSpace(_query) || _isSearching) return;
+
+        var userText = _query.Trim();
+        _query = ""; // XÓA NGAY LẬP TỨC KHỎI Ô NHẬP LIỆU NHƯ MESSENGER!
+
+        // 1. Thêm tin nhắn của User vào luồng hội thoại (bên phải)
+        _messages.Add(new AiChatMessageItem
+        {
+            IsUser = true,
+            Text = userText,
+            Timestamp = DateTime.Now
+        });
 
         _isSearching = true;
-        _hasSearched = true;
         StateHasChanged();
+        await ScrollToBottom();
 
         try
         {
-            await Task.Delay(250);
-            _recommendations = await SemanticSearchUseCase.ExecuteAsync(_query);
+            var recs = await SemanticSearchUseCase.ExecuteAsync(userText);
+
+            // 2. Thêm phản hồi của AI vào luồng hội thoại (bên trái)
+            _messages.Add(new AiChatMessageItem
+            {
+                IsUser = false,
+                Text = (recs != null && recs.Any()) 
+                    ? $"Dạ, em đã tìm thấy {recs.Count} bộ phim phù hợp nhất với yêu cầu của bạn:" 
+                    : "Dạ chưa tìm thấy phim nào khớp chính xác với câu này. Bạn hãy thử miêu tả theo thể loại, tâm trạng hoặc giờ chiếu khác nhé!",
+                Recommendations = recs,
+                Timestamp = DateTime.Now
+            });
+        }
+        catch (Exception)
+        {
+            _messages.Add(new AiChatMessageItem
+            {
+                IsUser = false,
+                Text = "Dạ có chút gián đoạn kết nối, bạn thử gửi lại câu hỏi giúp em nhé!",
+                Timestamp = DateTime.Now
+            });
         }
         finally
         {
             _isSearching = false;
             StateHasChanged();
+            await ScrollToBottom();
         }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await Task.Delay(60);
+            await JSRuntime.InvokeVoidAsync("eval", "var el = document.getElementById('aiChatBody'); if(el) el.scrollTop = el.scrollHeight;");
+        }
+        catch { }
     }
 }
