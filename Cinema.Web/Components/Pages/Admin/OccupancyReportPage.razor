@@ -62,18 +62,9 @@
 
         <!-- Occupancy Report Table -->
         <div class="card card-clean p-4 shadow-sm">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-2 border-bottom mb-3" style="border-color: rgba(255,255,255,0.08) !important;">
-                <h5 class="fw-bold text-white mb-0">
-                    <i class="bi bi-table text-warning me-2"></i>Chi Tiết Tỷ Lệ Lấp Đầy Theo Suất Chiếu
-                </h5>
-                <div class="d-flex align-items-center gap-2 small text-muted flex-wrap">
-                    <span class="d-inline-flex align-items-center gap-1"><span class="badge rounded-pill" style="width: 8px; height: 8px; padding: 0; background: #10b981;"></span> &ge;75% Cháy vé</span>
-                    <span class="d-inline-flex align-items-center gap-1"><span class="badge rounded-pill" style="width: 8px; height: 8px; padding: 0; background: #f97316;"></span> &ge;50% Đông khách</span>
-                    <span class="d-inline-flex align-items-center gap-1"><span class="badge rounded-pill" style="width: 8px; height: 8px; padding: 0; background: #f59e0b;"></span> &ge;20% Bán chạy</span>
-                    <span class="d-inline-flex align-items-center gap-1"><span class="badge rounded-pill" style="width: 8px; height: 8px; padding: 0; background: #38bdf8;"></span> &ge;10% Đang bán</span>
-                    <span class="d-inline-flex align-items-center gap-1"><span class="badge rounded-pill" style="width: 8px; height: 8px; padding: 0; background: #818cf8;"></span> &gt;0% Mới mở bán</span>
-                </div>
-            </div>
+            <h5 class="fw-bold text-white pb-2 border-bottom mb-3" style="border-color: rgba(255,255,255,0.08) !important;">
+                <i class="bi bi-table text-warning me-2"></i>Chi Tiết Tỷ Lệ Lấp Đầy Theo Suất Chiếu
+            </h5>
 
             <div class="table-responsive">
                 <table class="table table-hover align-middle small mb-0">
@@ -84,7 +75,7 @@
                             <th style="width: 170px;">Phòng Chiếu</th>
                             <th style="width: 160px;">Thời Gian Chiếu</th>
                             <th class="text-center" style="width: 140px;">Số Ghế Bán / Tổng</th>
-                            <th style="min-width: 220px;">Tỷ Lệ Lấp Đầy</th>
+                            <th style="min-width: 200px;">Tỷ Lệ Lấp Đầy</th>
                             <th class="text-end" style="width: 130px;">Doanh Thu</th>
                         </tr>
                     </thead>
@@ -110,19 +101,16 @@
                                     }
                                 </td>
                                 <td>
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <span class="badge" style="@GetBadgeStyle(r.OccupancyRate)">
-                                            @GetStatusText(r.OccupancyRate)
-                                        </span>
-                                        <span class="fw-bold font-monospace" style="color: @GetRateTextColor(r.OccupancyRate); font-size: 0.85rem;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-grow-1" style="height: 10px; background: rgba(255, 255, 255, 0.08); border-radius: 999px; overflow: hidden;">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: @(r.OccupancyRate)%; min-width: @(r.OccupancyRate > 0 ? "6px" : "0"); background: @GetProgressBarGradient(r.OccupancyRate); box-shadow: @GetProgressBarShadow(r.OccupancyRate); border-radius: 999px; transition: width 0.6s ease;" 
+                                                 aria-valuenow="@r.OccupancyRate" aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <span class="fw-bold font-monospace" style="width: 50px; color: @GetRateTextColor(r.OccupancyRate); font-size: 0.9rem;">
                                             @r.OccupancyRate.ToString("F1")%
                                         </span>
-                                    </div>
-                                    <div class="progress" style="height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: 999px; overflow: hidden;">
-                                        <div class="progress-bar" role="progressbar" 
-                                             style="width: @(r.OccupancyRate)%; min-width: @(r.OccupancyRate > 0 ? "6px" : "0"); background: @GetProgressBarGradient(r.OccupancyRate); box-shadow: @GetProgressBarShadow(r.OccupancyRate); border-radius: 999px; transition: width 0.6s ease;" 
-                                             aria-valuenow="@r.OccupancyRate" aria-valuemin="0" aria-valuemax="100">
-                                        </div>
                                     </div>
                                 </td>
                                 <td class="text-end fw-bold fs-6" style="color: @(r.TotalRevenue > 0 ? "#f59e0b" : "#64748b");">
@@ -200,25 +188,5 @@
         >= 10 => "#38bdf8",
         > 0   => "#a5b4fc",
         _     => "#64748b"
-    };
-
-    private string GetStatusText(decimal rate) => rate switch
-    {
-        >= 85 => "Cháy vé 🔥",
-        >= 60 => "Gần kín chỗ",
-        >= 30 => "Đông khách",
-        >= 10 => "Đang bán tốt",
-        > 0   => "Mới mở bán",
-        _     => "Chưa có vé"
-    };
-
-    private string GetBadgeStyle(decimal rate) => rate switch
-    {
-        >= 85 => "background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.72rem; font-weight: 600; padding: 2px 7px; border-radius: 6px;",
-        >= 60 => "background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.35); font-size: 0.72rem; font-weight: 600; padding: 2px 7px; border-radius: 6px;",
-        >= 30 => "background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.72rem; font-weight: 600; padding: 2px 7px; border-radius: 6px;",
-        >= 10 => "background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-size: 0.72rem; font-weight: 600; padding: 2px 7px; border-radius: 6px;",
-        > 0   => "background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.35); font-size: 0.72rem; font-weight: 500; padding: 2px 7px; border-radius: 6px;",
-        _     => "background: rgba(255, 255, 255, 0.04); color: #64748b; border: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.72rem; font-weight: 400; padding: 2px 7px; border-radius: 6px;"
     };
 }
