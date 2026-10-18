@@ -44,10 +44,10 @@
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
                 <h4 class="fw-bold text-white mb-1">
-                    <i class="bi bi-ticket-perforated-fill text-warning me-2"></i>Lịch Sử & Danh Sách Vé Của Bạn
+                    <i class="bi bi-ticket-perforated-fill text-warning me-2"></i>Lịch Sử &amp; Danh Sách Vé Của Bạn
                 </h4>
                 <p class="text-muted small mb-0">
-                    Toàn bộ vé xem phim bạn đã đặt trực tuyến tại Starlight Cinema Huế
+                    Toàn bộ vé xem phim bạn đã đặt trực tuyến tại Starlight Cinema Huế (sắp xếp mới nhất ở trên đầu)
                 </p>
             </div>
             <div class="badge bg-primary fs-6 px-3 py-2">
@@ -79,60 +79,102 @@
         }
         else
         {
-            <div class="row g-3">
-                @foreach (var booking in _bookings)
+            <div class="d-flex flex-column gap-3">
+                @for (int i = 0; i < _bookings.Count; i++)
                 {
+                    var booking = _bookings[i];
                     var showtime = _showtimesLookup.GetValueOrDefault(booking.ShowtimeId);
+                    bool isLatest = (i == 0);
 
-                    <div class="col-lg-6">
-                        <div class="p-3 rounded-3 border h-100 d-flex flex-column justify-content-between" style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1) !important;">
-                            <div>
-                                <!-- Top Bar: Reference & Status -->
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="font-monospace text-warning fw-bold fs-6">
-                                        @booking.BookingReference
+                    <div class="p-3 p-md-4 rounded-3 border position-relative overflow-hidden shadow-sm" 
+                         style="background: @(isLatest ? "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(30, 41, 59, 0.6) 100%)" : "rgba(255, 255, 255, 0.03)"); border-color: @(isLatest ? "rgba(16, 185, 129, 0.45)" : "rgba(255, 255, 255, 0.1)") !important; border-left: 6px solid @(isLatest ? "#10b981" : "#64748b") !important;">
+                        
+                        <!-- Top Bar: Reference & Tags & Status -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-2 mb-3 border-bottom" style="border-color: rgba(255,255,255,0.08) !important;">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="font-monospace text-warning fw-bold fs-6">
+                                    <i class="bi bi-ticket-perforated me-1"></i>@booking.BookingReference
+                                </span>
+                                @if (isLatest)
+                                {
+                                    <span class="badge" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 0.75rem; padding: 4px 10px; border-radius: 999px; box-shadow: 0 0 10px rgba(16,185,129,0.35);">
+                                        <i class="bi bi-stars me-1"></i>Vừa Mua Gần Nhất
                                     </span>
-                                    <span class="badge bg-success-subtle text-success">
-                                        @booking.Status
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background: rgba(255,255,255,0.06); color: #94a3b8; font-size: 0.72rem; padding: 4px 10px; border-radius: 999px;">
+                                        Vé Lịch Sử #@(i + 1)
                                     </span>
-                                </div>
+                                }
+                            </div>
 
-                                <!-- Movie Title & Showtime -->
-                                <h5 class="fw-bold text-white mb-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-success-subtle text-success px-3 py-1 fw-bold">
+                                    <i class="bi bi-check-circle-fill me-1"></i>@booking.Status
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Content Row (Full width) -->
+                        <div class="row g-3 align-items-center">
+                            <!-- Movie Info -->
+                            <div class="col-lg-5 col-md-6">
+                                <h5 class="fw-bold text-white mb-2">
                                     @(showtime?.MovieTitle ?? "Phim Chiếu Rạp")
                                 </h5>
-                                <div class="small text-white-50 mb-3">
-                                    <i class="bi bi-clock-fill text-primary me-1"></i>
-                                    @(showtime?.StartTime.ToString("HH:mm - dd/MM/yyyy") ?? booking.BookingTime.ToString("HH:mm - dd/MM/yyyy"))
-                                    <span class="mx-2">•</span>
-                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>
-                                    @(showtime?.AuditoriumName ?? "Phòng chiếu")
-                                </div>
-
-                                <!-- Seats & Total -->
-                                <div class="p-2 rounded bg-dark border border-secondary border-opacity-25 mb-3 d-flex justify-content-between align-items-center">
+                                <div class="small text-white-50 d-flex flex-column gap-1">
                                     <div>
-                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Ghế đã đặt (@booking.Tickets.Count vé):</small>
-                                        <strong class="text-primary">
-                                            @string.Join(", ", booking.Tickets.Select(t => t.SeatDisplayName))
-                                        </strong>
+                                        <i class="bi bi-clock-fill text-primary me-1"></i>
+                                        <span class="text-light fw-semibold">
+                                            @(showtime?.StartTime.ToString("HH:mm - dddd, dd/MM/yyyy") ?? booking.BookingTime.ToString("HH:mm - dd/MM/yyyy"))
+                                        </span>
                                     </div>
-                                    <div class="text-end">
-                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Tổng tiền:</small>
-                                        <strong class="text-success fs-6">@booking.TotalAmount.ToString("N0") đ</strong>
+                                    <div>
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                        <span>@(showtime?.AuditoriumName ?? "Phòng chiếu")</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Actions -->
-                            <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
-                                <small class="text-muted font-monospace" style="font-size: 0.75rem;">
-                                    Đặt lúc: @booking.BookingTime.ToString("dd/MM/yyyy HH:mm")
-                                </small>
-                                <a href="/confirmation/@booking.BookingReference" class="btn btn-sm btn-outline-warning fw-bold">
-                                    <i class="bi bi-qr-code me-1"></i>Xem Vé & QR
-                                </a>
+                            <!-- Seats & Payment Method -->
+                            <div class="col-lg-4 col-md-6">
+                                <div class="p-2 px-3 rounded bg-dark border border-secondary border-opacity-25">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted" style="font-size: 0.75rem;">Ghế đã đặt (@booking.Tickets.Count vé):</small>
+                                        <span class="badge bg-primary-subtle text-primary" style="font-size: 0.7rem;">@booking.PaymentMethod</span>
+                                    </div>
+                                    <div class="fw-bold fs-6 text-warning text-break">
+                                        @string.Join(", ", booking.Tickets.Select(t => t.SeatDisplayName))
+                                    </div>
+                                </div>
                             </div>
+
+                            <!-- Total Amount & Button -->
+                            <div class="col-lg-3 col-12 text-lg-end">
+                                <div class="d-flex flex-row flex-lg-column justify-content-between align-items-center align-items-lg-end gap-2">
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Tổng tiền thanh toán:</small>
+                                        <strong class="text-success fs-5 fw-bold">@booking.TotalAmount.ToString("N0") đ</strong>
+                                    </div>
+                                    <a href="/confirmation/@booking.BookingReference" class="btn btn-sm btn-cinema-gold fw-bold px-3 py-2 shadow-sm">
+                                        <i class="bi bi-qr-code me-1"></i>Xem Vé &amp; QR
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer: Timestamp -->
+                        <div class="d-flex justify-content-between align-items-center pt-2 mt-3 border-top border-secondary border-opacity-25 small text-muted">
+                            <span class="font-monospace">
+                                <i class="bi bi-calendar-check me-1 text-warning"></i>Thời gian đặt vé: <strong class="text-light">@booking.BookingTime.ToString("HH:mm - dd/MM/yyyy")</strong>
+                            </span>
+                            @if (isLatest)
+                            {
+                                <span class="text-success small fw-semibold d-none d-sm-inline">
+                                    <i class="bi bi-arrow-up-circle-fill me-1"></i>Đơn vé mới nhất trên đầu danh sách
+                                </span>
+                            }
                         </div>
                     </div>
                 }
@@ -176,7 +218,7 @@
                 }
 
                 var list = await ViewMyBookingsUseCase.ExecuteAsync(_userId, _userEmail, _userPhone);
-                _bookings = list.ToList();
+                _bookings = list.OrderByDescending(b => b.BookingTime).ToList();
 
                 // Tải trước thông tin showtime
                 var showtimeIds = _bookings.Select(b => b.ShowtimeId).Distinct();
