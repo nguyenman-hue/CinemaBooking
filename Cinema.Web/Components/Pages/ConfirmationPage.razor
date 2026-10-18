@@ -9,7 +9,7 @@
 <div class="container py-4">
     @if (_isLoading)
     {
-        <div class="text-center py-5">
+        <div class="text-center py-5 no-print">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Đang tải thông tin vé...</span>
             </div>
@@ -18,7 +18,7 @@
     }
     else if (_booking == null)
     {
-        <div class="alert alert-warning text-center py-5">
+        <div class="alert alert-warning text-center py-5 no-print">
             <i class="bi bi-question-circle fs-2 text-warning d-block mb-2"></i>
             <h4>Không tìm thấy thông tin mã đặt vé</h4>
             <p class="text-muted">Mã vé <strong>@Reference</strong> không tồn tại trong hệ thống hoặc đã bị hủy.</p>
@@ -27,8 +27,8 @@
     }
     else
     {
-        <!-- Success Alert Header -->
-        <div class="text-center mb-4">
+        <!-- Success Alert Header (No Print) -->
+        <div class="text-center mb-4 no-print">
             <div class="d-inline-flex align-items-center justify-content-center bg-success text-white rounded-circle mb-3" style="width: 64px; height: 64px; font-size: 2rem;">
                 <i class="bi bi-check-lg"></i>
             </div>
@@ -38,8 +38,8 @@
             </p>
         </div>
 
-        <!-- Real Email Notification Banner -->
-        <div class="row justify-content-center mb-4">
+        <!-- Real Email Notification Banner (No Print) -->
+        <div class="row justify-content-center mb-4 no-print">
             <div class="col-lg-8 col-xl-7">
                 <div class="p-3 rounded-3 d-flex align-items-center gap-3 shadow-sm" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35);">
                     <div class="rounded-circle p-2 text-success bg-success-subtle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px; font-size: 1.4rem;">
@@ -55,37 +55,43 @@
             </div>
         </div>
 
-        <!-- E-Ticket Perforated Card -->
+        <!-- E-Ticket Perforated Card (The Only Part Printed) -->
         <div class="row justify-content-center">
             <div class="col-lg-8 col-xl-7">
-                <div class="ticket-card shadow-lg mb-4">
+                <div id="printable-ticket" class="ticket-card shadow-lg mb-4">
                     <!-- Ticket Header -->
                     <div class="ticket-header">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-secondary border-opacity-50">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-film text-warning fs-5"></i>
+                                <span class="fw-bold text-white tracking-wide" style="letter-spacing: 1px; font-size: 0.9rem;">STARLIGHT CINEMA HUẾ</span>
+                            </div>
+                            <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 0.7rem;">VÉ ĐIỆN TỬ (E-TICKET)</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-1">
                             <div>
-                                <span class="badge bg-white text-primary fw-bold px-2 py-1 mb-1">VÉ ĐIỆN TỬ (E-TICKET)</span>
                                 <h3 class="fw-bold mb-0 text-white">@(_showtime?.MovieTitle ?? "Starlight Cinema")</h3>
                             </div>
                             <div class="text-end">
-                                <small class="text-white-50 d-block">Mã Đơn Vé</small>
+                                <small class="text-white-50 d-block" style="font-size: 0.75rem;">Mã Đơn Vé</small>
                                 <strong class="fs-5 text-warning font-monospace">@_booking.BookingReference</strong>
                             </div>
                         </div>
                     </div>
 
                     <!-- Ticket Details Body -->
-                    <div class="p-4 bg-white">
+                    <div class="p-4 bg-white text-dark">
                         <div class="row g-3 mb-3">
-                            <div class="col-sm-6">
+                            <div class="col-6">
                                 <small class="text-muted d-block">Phòng Chiếu</small>
-                                <strong class="text-slate-900 fs-6">
+                                <strong class="text-dark fs-6">
                                     <i class="bi bi-geo-alt-fill text-danger me-1"></i>@(_showtime?.AuditoriumName ?? "Phòng Chiếu")
                                 </strong>
                                 <span class="badge bg-primary-subtle text-primary ms-1">@_showtime?.ScreenType</span>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-6">
                                 <small class="text-muted d-block">Suất Chiếu</small>
-                                <strong class="text-slate-900 fs-6">
+                                <strong class="text-dark fs-6">
                                     <i class="bi bi-clock-fill text-primary me-1"></i>@_showtime?.StartTime.ToString("HH:mm - dd/MM/yyyy")
                                 </strong>
                             </div>
@@ -122,21 +128,21 @@
 
                         <!-- Customer Info & Payment Details -->
                         <div class="row g-3 small">
-                            <div class="col-sm-6">
+                            <div class="col-6">
                                 <div class="text-muted">Họ Tên Khách Hàng:</div>
-                                <div class="fw-bold text-slate-800">@_booking.CustomerName</div>
+                                <div class="fw-bold text-dark">@_booking.CustomerName</div>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-6">
                                 <div class="text-muted">Số Điện Thoại:</div>
-                                <div class="fw-bold text-slate-800">@_booking.CustomerPhone</div>
+                                <div class="fw-bold text-dark">@_booking.CustomerPhone</div>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-6">
                                 <div class="text-muted">Email Nhận Vé:</div>
-                                <div class="fw-bold text-slate-800">@_booking.CustomerEmail</div>
+                                <div class="fw-bold text-dark text-break">@_booking.CustomerEmail</div>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-6">
                                 <div class="text-muted">Phương Thức Thanh Toán:</div>
-                                <div class="fw-bold text-slate-800">@_booking.PaymentMethod (Đã xác nhận)</div>
+                                <div class="fw-bold text-dark">@_booking.PaymentMethod (Đã xác nhận)</div>
                             </div>
                         </div>
 
@@ -160,8 +166,8 @@
                     </div>
                 </div>
 
-                <!-- Print & Navigation Actions -->
-                <div class="d-flex justify-content-center gap-3">
+                <!-- Print & Navigation Actions (No Print) -->
+                <div class="d-flex justify-content-center gap-3 no-print">
                     <button class="btn btn-outline-primary px-4 py-2" @onclick="PrintTicket" style="border-radius: 8px;">
                         <i class="bi bi-printer me-2"></i>In Vé / Lưu PDF
                     </button>
@@ -173,6 +179,147 @@
         </div>
     }
 </div>
+
+<style>
+    /* Screen styles */
+    .ticket-card {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: #ffffff;
+    }
+
+    .ticket-header {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        padding: 1.25rem 1.5rem;
+    }
+
+    .ticket-divider {
+        border-top: 2px dashed #cbd5e1;
+        margin: 1.25rem 0;
+    }
+
+    /* Print & PDF Export styles */
+    @@media print {
+        /* Hide all website UI completely */
+        header, 
+        nav, 
+        footer, 
+        .cinema-navbar, 
+        .footer-clean, 
+        .ai-floating-btn, 
+        .ai-chat-popup, 
+        .no-print,
+        #blazor-error-ui {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        /* Optimize for clean 1-page A4 */
+        @@page {
+            size: A4 portrait;
+            margin: 10mm 15mm 10mm 15mm;
+        }
+
+        html, body {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 13px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .row {
+            margin: 0 !important;
+            display: block !important;
+        }
+
+        .col-lg-8, .col-xl-7 {
+            width: 100% !important;
+            max-width: 650px !important;
+            padding: 0 !important;
+            margin: 0 auto !important;
+        }
+
+        /* Printable Ticket */
+        #printable-ticket {
+            width: 100% !important;
+            max-width: 650px !important;
+            margin: 0 auto !important;
+            border: 2px solid #0f172a !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            color: #0f172a !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            overflow: hidden !important;
+        }
+
+        .ticket-header {
+            background: #0f172a !important;
+            color: #ffffff !important;
+            padding: 1.25rem 1.5rem !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .ticket-header * {
+            color: #ffffff !important;
+        }
+
+        .ticket-header .text-warning {
+            color: #fbbf24 !important;
+        }
+
+        .ticket-header .badge {
+            background: #fbbf24 !important;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .ticket-divider {
+            border-top: 2px dashed #94a3b8 !important;
+            margin: 1rem 0 !important;
+        }
+
+        .bg-white {
+            background: #ffffff !important;
+            color: #0f172a !important;
+        }
+
+        .bg-light {
+            background: #f8fafc !important;
+            border: 1px solid #cbd5e1 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .text-dark {
+            color: #0f172a !important;
+        }
+
+        .text-muted {
+            color: #475569 !important;
+        }
+
+        .badge {
+            border: 1px solid currentColor !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+</style>
 
 @code {
     [Parameter] public string Reference { get; set; } = string.Empty;

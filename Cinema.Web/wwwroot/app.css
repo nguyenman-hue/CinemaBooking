@@ -831,3 +831,19 @@ code {
     background-color: #94a3b8;
     transform: translateY(-50%);
 }
+
+/* Print Optimization - Hide all layout navigation, footers and floating widgets */
+@media print {
+    header, 
+    nav, 
+    footer, 
+    .cinema-navbar, 
+    .footer-clean, 
+    .ai-floating-btn, 
+    .ai-chat-popup, 
+    .no-print,
+    #blazor-error-ui {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}
