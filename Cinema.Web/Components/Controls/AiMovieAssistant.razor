@@ -1,4 +1,4 @@
-@using Cinema.UseCases.AI
+﻿@using Cinema.UseCases.AI
 @using Cinema.UseCases.DTOs
 @inject ISemanticMovieSearchUseCase SemanticSearchUseCase
 @inject NavigationManager Navigation
@@ -50,18 +50,23 @@
                 <div class="d-flex flex-wrap gap-1">
                     <button type="button" class="btn btn-sm text-nowrap rounded-pill py-1 px-2" 
                             style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; font-size: 0.78rem;"
-                            @onclick='() => SetPrompt("phim nhẹ nhàng cho gia đình")'>
-                        🍿 Phim gia đình nhẹ nhàng
+                            @onclick='() => SetPrompt("Xin chào bạn!")'>
+                        👋 Chào bạn!
                     </button>
                     <button type="button" class="btn btn-sm text-nowrap rounded-pill py-1 px-2" 
                             style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; font-size: 0.78rem;"
-                            @onclick='() => SetPrompt("bom tấn hành động kịch tính tối nay")'>
-                        💥 Bom tấn hành động
+                            @onclick='() => SetPrompt("có phim hành động nào chiếu tối nay không?")'>
+                        💥 Phim hành động tối nay
                     </button>
                     <button type="button" class="btn btn-sm text-nowrap rounded-pill py-1 px-2" 
                             style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; font-size: 0.78rem;"
-                            @onclick='() => SetPrompt("chọn phim chiếu muộn nhất rạp")'>
-                        🌙 Phim chiếu muộn nhất
+                            @onclick='() => SetPrompt("tối nay có phim gì chiếu muộn nhất?")'>
+                        🌙 Suất chiếu muộn nhất
+                    </button>
+                    <button type="button" class="btn btn-sm text-nowrap rounded-pill py-1 px-2" 
+                            style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; font-size: 0.78rem;"
+                            @onclick='() => SetPrompt("gợi ý phim gia đình nhẹ nhàng tối nay")'>
+                        👨‍👩‍👧 Phim gia đình nhẹ nhàng
                     </button>
                 </div>
             </div>
@@ -89,11 +94,11 @@
                         </div>
                         <div style="max-width: 85%;">
                             <div class="py-2 px-3 rounded-4 mb-2 shadow-sm"
-                                 style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); color: #e2e8f0; font-size: 0.85rem; line-height: 1.45; border-bottom-left-radius: 4px !important;">
+                                 style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); color: #e2e8f0; font-size: 0.85rem; line-height: 1.45; border-bottom-left-radius: 4px !important; white-space: pre-wrap;">
                                 @msg.Text
                             </div>
 
-                            <!-- Movie Cards (if any) -->
+                            <!-- Movie Cards (only if AI recommended any movies) -->
                             @if (msg.Recommendations != null && msg.Recommendations.Any())
                             {
                                 @foreach (var rec in msg.Recommendations)
@@ -118,7 +123,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Showtimes Chips (Chỉ hiển thị các suất chiếu thực tế sắp tới) -->
+                                        <!-- Suất chiếu thực tế còn lại hôm nay -->
                                         @if (rec.SuggestedShowtimes != null && rec.SuggestedShowtimes.Any(st => st.StartTime > DateTime.Now))
                                         {
                                             <div class="mt-2 pt-2 border-top border-white border-opacity-10 d-flex flex-wrap gap-1 align-items-center">
@@ -205,7 +210,7 @@
         new AiChatMessageItem
         {
             IsUser = false,
-            Text = "Starlight AI chào bạn! Bạn muốn tìm phim thế nào? Hãy nói mong muốn của bạn (ví dụ: 'phim nhẹ nhàng cho gia đình', 'bom tấn tối nay', 'phim chiếu muộn nhất') em sẽ gợi ý phim và suất chiếu hợp nhất nhé! 🍿"
+            Text = "Xin chào bạn! Mình là Starlight AI - trợ lý điện ảnh thông minh của rạp Starlight Cinema Huế. Bạn muốn tìm phim theo thể loại nào, diễn viên yêu thích hay tìm suất chiếu mấy giờ hôm nay? Hãy nhắn cho mình biết nhé! ✨"
         }
     };
 
@@ -253,26 +258,14 @@
 
         try
         {
-            var recs = await SemanticSearchUseCase.ExecuteAsync(userText);
+            var chatResult = await SemanticSearchUseCase.ChatAsync(userText);
 
-            // 2. Thêm phản hồi của AI vào luồng hội thoại (bên trái)
-            string aiResponseText;
-            if (recs != null && recs.Any())
-            {
-                aiResponseText = recs.Count == 1 
-                    ? "Dạ, em gửi bạn thông tin bộ phim phù hợp nhất với yêu cầu:" 
-                    : $"Dạ, em đã tìm thấy {recs.Count} bộ phim phù hợp nhất với yêu cầu của bạn:";
-            }
-            else
-            {
-                aiResponseText = "Dạ rất tiếc, hiện tại rạp không có suất chiếu nào phù hợp với yêu cầu này của bạn. Bạn hãy thử chọn ngày khác hoặc quay lại vào ngày mai nhé!";
-            }
-
+            // 2. Thêm phản hồi thực tế từ AI vào luồng hội thoại (bên trái)
             _messages.Add(new AiChatMessageItem
             {
                 IsUser = false,
-                Text = aiResponseText,
-                Recommendations = recs,
+                Text = chatResult.ReplyMessage,
+                Recommendations = chatResult.Recommendations,
                 Timestamp = DateTime.Now
             });
         }

@@ -1,5 +1,4 @@
-using System.Globalization;
-using System.Net.Http.Headers;
+﻿using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -9,13 +8,27 @@ using Cinema.UseCases.PluginInterfaces.DataStore;
 
 namespace Cinema.UseCases.AI;
 
+/// <summary>
+/// Trien khai UseCase tim kiem phim thong minh (Semantic Search) va Tro ly AI dien anh.
+/// Ho tro tich hop truc tiep Google Gemini API voi co che tu dong chuyen doi Model khi cham han muc (Quota),
+/// va co che Fallback thong minh cuc bo (Offline).
+/// </summary>
 public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
 {
     private readonly IMovieRepository _movieRepository;
     private readonly IShowtimeRepository _showtimeRepository;
     private readonly HttpClient? _httpClient;
-    private readonly string _geminiModel;
+    private readonly string _primaryModel;
     private readonly string _effectiveApiKey;
+
+    // Danh sach cac Model Gemini duoc ho tro de du phong khi model chinh het quota (429)
+    private static readonly string[] FallbackModels = new[]
+    {
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-flash-lite-latest",
+        "gemini-3-flash-preview"
+    };
 
     public SemanticMovieSearchUseCase(
         IMovieRepository movieRepository,
@@ -26,85 +39,164 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
     {
         _movieRepository = movieRepository;
         _showtimeRepository = showtimeRepository;
-        _httpClient = httpClient;
-        _geminiModel = string.IsNullOrWhiteSpace(geminiModel) ? "gemini-2.5-flash" : geminiModel;
-        _effectiveApiKey = (!string.IsNullOrWhiteSpace(geminiApiKey) && geminiApiKey != "YOUR_GEMINI_API_KEY") 
-            ? geminiApiKey 
-            : (Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? "");
+        _httpClient = httpClient ?? new HttpClient();
+        _primaryModel = string.IsNullOrWhiteSpace(geminiModel) ? "gemini-2.5-flash-lite" : geminiModel;
+        _effectiveApiKey = ResolveApiKey(geminiApiKey);
     }
 
-    public async Task<List<AiMovieRecommendationDto>> ExecuteAsync(string naturalLanguageQuery, DateTime? preferredDate = null)
+    private static string ResolveApiKey(string? apiKey)
+    {
+        if (!string.IsNullOrWhiteSpace(apiKey) &&
+            !apiKey.Contains("YOUR_GEMINI_API_KEY", StringComparison.OrdinalIgnoreCase))
+        {
+            return apiKey;
+        }
+
+        var processKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY", EnvironmentVariableTarget.Process);
+        if (!string.IsNullOrWhiteSpace(processKey)) return processKey;
+
+        var userKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY", EnvironmentVariableTarget.User);
+        if (!string.IsNullOrWhiteSpace(userKey)) return userKey;
+
+        var machineKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY", EnvironmentVariableTarget.Machine);
+        if (!string.IsNullOrWhiteSpace(machineKey)) return machineKey;
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Hoi thoai thuc te voi Tro ly AI (tuong thich 100% ChatGPT/Gemini)
+    /// </summary>
+    public async Task<AiChatResponseDto> ChatAsync(string naturalLanguageQuery, DateTime? preferredDate = null)
     {
         if (string.IsNullOrWhiteSpace(naturalLanguageQuery))
         {
-            return new List<AiMovieRecommendationDto>();
+            return new AiChatResponseDto
+            {
+                ReplyMessage = "Chào bạn! Mình là Trợ lý AI Starlight Cinema. Bạn muốn tìm phim theo thể loại nào, diễn viên nào hay suất chiếu mấy giờ hôm nay nè?",
+                Recommendations = new List<AiMovieRecommendationDto>()
+            };
         }
 
-        var normalizedQuery = NormalizeText(naturalLanguageQuery);
+        string originalQuery = naturalLanguageQuery.Trim();
+        string normalizedQuery = NormalizeText(originalQuery);
+
+        var targetDate = preferredDate?.Date ?? DetectTargetDate(normalizedQuery);
+        var (timeStart, timeEnd, timeReason) = DetectTimePreference(normalizedQuery);
+
         var activeMovies = (await _movieRepository.GetAllMoviesAsync(activeOnly: true)).ToList();
-        
-        // CHỈ LẤY CÁC SUẤT CHIẾU TRONG TƯƠNG LAI (LOẠI BỎ TRIỆT ĐỂ SUẤT ĐÃ CHIẾU VÀ DỮ LIỆU CŨ QUÁ KHỨ)
-        var allShowtimes = (await _showtimeRepository.GetAllUpcomingShowtimesAsync())
-            .Where(s => s.StartTime > DateTime.Now)
+        var allShowtimes = (await _showtimeRepository.GetAllUpcomingShowtimesAsync()).ToList();
+
+        // Loc suat chieu: NEU LA HOM NAY thi chi lay cac suat chieu TRONG TUONG LAI (chua chieu)
+        var upcomingShowtimes = allShowtimes
+            .Where(s => s.StartTime.Date == targetDate.Date)
+            .Where(s => targetDate.Date > DateTime.Today || s.StartTime > DateTime.Now)
             .ToList();
 
-        var (timeFilterStart, timeFilterEnd, timeReason) = DetectTimePreference(normalizedQuery);
-        var targetDate = preferredDate ?? DetectTargetDate(normalizedQuery);
-
-        // Ưu tiên gọi Google Gemini 2.5 Flash để đọc hiểu tự nhiên mọi câu hỏi (như ChatGPT)
-        if (!string.IsNullOrWhiteSpace(_effectiveApiKey) && _effectiveApiKey != "YOUR_GEMINI_API_KEY" && _httpClient != null)
+        if (!string.IsNullOrWhiteSpace(_effectiveApiKey))
         {
-            try
+            // Thu lan luot model chinh, neu gap 429 quota thi tu dong chuyen sang model du phong
+            var modelsToTry = new List<string> { _primaryModel };
+            foreach (var m in FallbackModels)
             {
-                var geminiResults = await TryCallGeminiAsync(naturalLanguageQuery, normalizedQuery, activeMovies, allShowtimes, targetDate, timeFilterStart, timeFilterEnd, timeReason);
-                if (geminiResults != null && geminiResults.Any())
-                {
-                    return geminiResults;
-                }
+                if (!modelsToTry.Contains(m)) modelsToTry.Add(m);
             }
-            catch (Exception ex)
+
+            foreach (var model in modelsToTry)
             {
-                Console.WriteLine($"[Gemini Fallback] Lỗi API: {ex.Message}. Chuyển sang Smart Local Semantic Engine.");
+                try
+                {
+                    var geminiResult = await CallGeminiChatAsync(
+                        originalQuery,
+                        normalizedQuery,
+                        activeMovies,
+                        upcomingShowtimes,
+                        targetDate,
+                        timeStart,
+                        timeEnd,
+                        _effectiveApiKey,
+                        model);
+
+                    if (geminiResult != null)
+                    {
+                        return geminiResult;
+                    }
+                }
+                catch
+                {
+                    // Tiep tuc thu model tiep theo
+                }
             }
         }
 
-        return RunSmartSemanticSearch(naturalLanguageQuery, normalizedQuery, activeMovies, allShowtimes, targetDate, timeFilterStart, timeFilterEnd, timeReason);
+        // Che do Offline / Smart Local Chat khi khong the ket noi den bat ky model Gemini nao
+        return RunSmartLocalChat(
+            originalQuery,
+            normalizedQuery,
+            activeMovies,
+            upcomingShowtimes,
+            targetDate,
+            timeStart,
+            timeEnd,
+            timeReason);
     }
 
-    private async Task<List<AiMovieRecommendationDto>?> TryCallGeminiAsync(
-        string userQuery, 
-        string normalizedQuery,
-        List<Movie> movies, 
-        List<Showtime> allShowtimes, 
-        DateTime targetDate, 
-        TimeSpan timeStart, 
-        TimeSpan timeEnd, 
-        string timeReason)
+    /// <summary>
+    /// Tim kiem phim (tuong thich nguoc cho cac noi chi can danh sach phim)
+    /// </summary>
+    public async Task<List<AiMovieRecommendationDto>> ExecuteAsync(string naturalLanguageQuery, DateTime? preferredDate = null)
     {
-        var moviesSummary = string.Join("\n", movies.Select(m => 
+        var chatResult = await ChatAsync(naturalLanguageQuery, preferredDate);
+        return chatResult.Recommendations;
+    }
+
+    private async Task<AiChatResponseDto?> CallGeminiChatAsync(
+        string userQuery,
+        string normalizedQuery,
+        List<Movie> movies,
+        List<Showtime> upcomingShowtimes,
+        DateTime targetDate,
+        TimeSpan timeStart,
+        TimeSpan timeEnd,
+        string apiKey,
+        string modelName)
+    {
+        var moviesSummary = string.Join("\n", movies.Select(m =>
         {
-            var mShowtimes = allShowtimes
+            var movieShowtimes = upcomingShowtimes
                 .Where(st => st.MovieId == m.MovieId)
                 .OrderBy(st => st.StartTime)
-                .Select(st => $"{st.StartTime:HH:mm} (ngày {st.StartTime:dd/MM})")
-                .Distinct()
+                .GroupBy(st => st.StartTime)
+                .Select(g => g.First())
                 .ToList();
-            var showtimesStr = mShowtimes.Any() ? string.Join(", ", mShowtimes) : "Hiện tại không còn suất chiếu khả dụng";
-            return $"- ID {m.MovieId}: \"{m.Title}\" (Đạo diễn: {m.Director}, Diễn viên: {m.Cast}, Thể loại: {m.Genre}, Độ tuổi: {m.AgeRating}, Thời lượng: {m.DurationMinutes} phút). Suất chiếu sắp tới: [{showtimesStr}]. Mô tả: {m.Description}";
+
+            string showtimeListStr = movieShowtimes.Any()
+                ? string.Join(", ", movieShowtimes.Select(st => $"{st.StartTime:HH:mm} ({st.AuditoriumName ?? "Rạp"})"))
+                : "Hôm nay đã hết suất chiếu";
+
+            return $"[{m.MovieId}] {m.Title} | Thể loại: {m.Genre} | Đạo diễn: {m.Director} | Diễn viên: {m.Cast} | Độ tuổi: {m.AgeRating} | Suất chiếu thực tế hôm nay: {showtimeListStr}";
         }));
 
-        var systemPrompt = 
-            "Bạn là Trợ lý AI điện ảnh thông minh của rạp Starlight Cinema Huế (tương tự như ChatGPT chuyên về điện ảnh).\n" +
-            "Dưới đây là toàn bộ danh sách các bộ phim và các suất chiếu SẮP TỚI thực tế tại rạp:\n" + moviesSummary + "\n\n" +
+        var systemPrompt =
+            "Bạn là Trợ lý AI điện ảnh thông minh của rạp Starlight Cinema Huế (tương tự như ChatGPT phiên bản chuyên gia rạp phim).\n" +
+            "Dưới đây là danh sách phim và suất chiếu THỰC TẾ hôm nay tại rạp:\n" + moviesSummary + "\n\n" +
             "Khách hàng hỏi: \"" + userQuery + "\"\n\n" +
-            "Quy tắc nghiệp vụ THỰC TẾ bắt buộc (TUYỆT ĐỐI TUÂN THỦ):\n" +
-            "1. Đọc hiểu toàn diện thời gian, suất chiếu (sớm nhất, muộn nhất, sau mấy giờ, trưa, tối, khuya...), cảm xúc, thể loại của khách hàng.\n" +
-            "2. TUYỆT ĐỐI KHÔNG BỊA ĐẶT suất chiếu hoặc giờ chiếu không có trong danh sách trên.\n" +
-            "3. Nếu khách hỏi về một khung giờ cụ thể (ví dụ: 'trên 8 giờ đêm', 'sau 20h', 'chiếu muộn nhất') mà rạp KHÔNG CÓ suất chiếu nào thỏa mãn:\n" +
-            "   - BẮT BUỘC phải nói rõ sự thật trong câu trả lời (reason): Rạp không có suất nào trong khung giờ đó, và thông báo suất chiếu gần nhất/muộn nhất còn lại hôm nay (nếu có) hoặc báo hôm nay đã hết suất.\n" +
-            "   - Chỉ gợi ý phim có suất chiếu gần nhất đó (hoặc trả về [] nếu toàn bộ rạp đã hết sạch suất).\n" +
-            "4. BẮT BUỘC chỉ trả về định dạng JSON thuần túy (không kèm chữ thừa mở đầu hay kết thúc), theo mẫu:\n" +
-            "[{\"movieId\": 5, \"score\": 85, \"reason\": \"Câu giải thích thân thiện và chính xác thực tế cho khách hàng...\"}]";
+            "Quy tắc nghiệp vụ THỰC TẾ bắt buộc:\n" +
+            "1. Nếu khách hàng chỉ chào hỏi ('hello', 'chào', 'hi'), hỏi bạn là ai, hoặc trò chuyện chung/ngoài lề (thời tiết, ăn uống...):\n" +
+            "   - Hãy trả lời chào hỏi tự nhiên, lịch sự, thân thiện và khéo léo giới thiệu bạn là trợ lý rạp Starlight Cinema.\n" +
+            "   - Mục 'movies' PHẢI là mảng rỗng [] (TUYỆT ĐỐI KHÔNG tự tiện gắn phim vào khi khách chỉ chào hỏi!).\n" +
+            "2. Nếu khách hàng hỏi tìm phim (theo thể loại, diễn viên, tâm trạng, thời gian, suất muộn, suất sớm...):\n" +
+            "   - Chọn ĐÚNG các phim thực sự phù hợp từ danh sách trên.\n" +
+            "   - Viết câu trả lời 'reply' tự nhiên, chi tiết như một nhân viên tư vấn nhiệt tình của rạp (nhắc đến tên phim, suất chiếu).\n" +
+            "   - Mục 'movies' chứa danh sách các phim phù hợp với movieId, score (từ 60 đến 100), reason (lý do cụ thể vì sao phim này hợp với khách).\n" +
+            "3. TUYỆT ĐỐI KHÔNG bịa đặt phim hoặc suất chiếu không có trong danh sách trên.\n" +
+            "4. BẮT BUỘC chỉ trả về định dạng JSON thuần túy (không kèm Markdown code block thừa thãi), theo mẫu:\n" +
+            "{\n" +
+            "  \"reply\": \"Câu trả lời trò chuyện tự nhiên của AI...\",\n" +
+            "  \"movies\": [\n" +
+            "    { \"movieId\": 1, \"score\": 95, \"reason\": \"Lý do phù hợp...\" }\n" +
+            "  ]\n" +
+            "}";
 
         var requestBody = new
         {
@@ -121,18 +213,18 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         };
 
         var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_geminiModel}:generateContent?key={_effectiveApiKey}";
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}";
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var response = await _httpClient!.PostAsync(url, jsonContent, cts.Token);
         if (!response.IsSuccessStatusCode)
         {
-            return null;
+            return null; // Model nay bi loi (vd 429 quota), de vong lap thu model tiep theo
         }
 
         var responseString = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(responseString);
-        
+
         var textResult = doc.RootElement
             .GetProperty("candidates")[0]
             .GetProperty("content")
@@ -142,100 +234,141 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
 
         if (string.IsNullOrWhiteSpace(textResult)) return null;
 
-        var jsonClean = CleanJson(textResult);
+        var jsonClean = CleanJsonObject(textResult);
         using var jsonParsed = JsonDocument.Parse(jsonClean);
+
+        string replyMessage = "Chào bạn! Tôi có thể hỗ trợ gì cho bạn về các bộ phim tại Starlight Cinema?";
+        if (jsonParsed.RootElement.TryGetProperty("reply", out var replyProp))
+        {
+            replyMessage = replyProp.GetString() ?? replyMessage;
+        }
 
         var recommendations = new List<AiMovieRecommendationDto>();
         bool isLateQuery = normalizedQuery.Contains("muon") || normalizedQuery.Contains("khuya") || normalizedQuery.Contains("toi muon");
 
-        foreach (var item in jsonParsed.RootElement.EnumerateArray())
+        if (jsonParsed.RootElement.TryGetProperty("movies", out var moviesArray) && moviesArray.ValueKind == JsonValueKind.Array)
         {
-            if (item.TryGetProperty("movieId", out var movieIdProp))
+            foreach (var item in moviesArray.EnumerateArray())
             {
-                int movieId = movieIdProp.GetInt32();
-                var movie = movies.FirstOrDefault(m => m.MovieId == movieId);
-                if (movie != null)
+                if (item.TryGetProperty("movieId", out var movieIdProp))
                 {
-                    double score = item.TryGetProperty("score", out var s) ? s.GetDouble() : 90;
-                    string reason = item.TryGetProperty("reason", out var r) ? r.GetString() ?? "" : "";
-
-                    var movieShowtimes = allShowtimes
-                        .Where(st => st.MovieId == movie.MovieId)
-                        .Where(st => st.StartTime.Date == targetDate.Date);
-
-                    if (timeStart > TimeSpan.Zero || timeEnd < new TimeSpan(23, 59, 59))
+                    int movieId = movieIdProp.GetInt32();
+                    var movie = movies.FirstOrDefault(m => m.MovieId == movieId);
+                    if (movie != null)
                     {
-                        var filteredInWindow = movieShowtimes.Where(st => st.StartTime.TimeOfDay >= timeStart && st.StartTime.TimeOfDay <= timeEnd).ToList();
-                        if (filteredInWindow.Any())
+                        double score = item.TryGetProperty("score", out var s) ? s.GetDouble() : 90;
+                        string reason = item.TryGetProperty("reason", out var r) ? r.GetString() ?? "" : "";
+
+                        var movieShowtimes = upcomingShowtimes
+                            .Where(st => st.MovieId == movie.MovieId)
+                            .Where(st => st.StartTime.Date == targetDate.Date);
+
+                        if (timeStart > TimeSpan.Zero || timeEnd < new TimeSpan(23, 59, 59))
                         {
-                            movieShowtimes = filteredInWindow;
+                            var filteredInWindow = movieShowtimes.Where(st => st.StartTime.TimeOfDay >= timeStart && st.StartTime.TimeOfDay <= timeEnd).ToList();
+                            if (filteredInWindow.Any())
+                            {
+                                movieShowtimes = filteredInWindow;
+                            }
                         }
+
+                        var showtimesList = (isLateQuery
+                            ? movieShowtimes.OrderByDescending(st => st.StartTime)
+                            : movieShowtimes.OrderBy(st => st.StartTime))
+                            .GroupBy(st => st.StartTime)
+                            .Select(g => g.First())
+                            .ToList();
+
+                        recommendations.Add(new AiMovieRecommendationDto
+                        {
+                            Movie = movie,
+                            RelevanceScore = score,
+                            MatchReason = reason,
+                            SuggestedShowtimes = showtimesList
+                        });
                     }
-
-                    var showtimesList = isLateQuery
-                        ? movieShowtimes.OrderByDescending(st => st.StartTime).ToList()
-                        : movieShowtimes.OrderBy(st => st.StartTime).ToList();
-
-                    // TUYỆT ĐỐI KHÔNG BỐC SUẤT QUÁ KHỨ!
-                    recommendations.Add(new AiMovieRecommendationDto
-                    {
-                        Movie = movie,
-                        RelevanceScore = score,
-                        MatchReason = reason,
-                        SuggestedShowtimes = showtimesList
-                    });
                 }
             }
         }
 
-        return recommendations.OrderByDescending(r => r.RelevanceScore).ToList();
+        return new AiChatResponseDto
+        {
+            ReplyMessage = replyMessage,
+            Recommendations = recommendations.OrderByDescending(r => r.RelevanceScore).ToList()
+        };
     }
 
-    private string CleanJson(string text)
+    private string CleanJsonObject(string text)
     {
-        if (string.IsNullOrWhiteSpace(text)) return "[]";
+        if (string.IsNullOrWhiteSpace(text)) return "{}";
         text = text.Trim();
-        int startIndex = text.IndexOf('[');
-        int endIndex = text.LastIndexOf(']');
+        int startIndex = text.IndexOf('{');
+        int endIndex = text.LastIndexOf('}');
         if (startIndex >= 0 && endIndex > startIndex)
         {
             return text.Substring(startIndex, endIndex - startIndex + 1);
         }
-        return text;
+        return "{}";
     }
 
-    private List<AiMovieRecommendationDto> RunSmartSemanticSearch(
+    private AiChatResponseDto RunSmartLocalChat(
         string originalQuery,
-        string normalizedQuery, 
-        List<Movie> activeMovies, 
-        List<Showtime> allShowtimes, 
-        DateTime targetDate, 
-        TimeSpan timeFilterStart, 
-        TimeSpan timeFilterEnd, 
+        string normalizedQuery,
+        List<Movie> activeMovies,
+        List<Showtime> upcomingShowtimes,
+        DateTime targetDate,
+        TimeSpan timeFilterStart,
+        TimeSpan timeFilterEnd,
         string timeReason)
     {
-        var recommendations = new List<AiMovieRecommendationDto>();
+        // 1. Kiem tra chao hoi hoac tro chuyen chung chung
+        bool isGreeting = normalizedQuery == "chao" || normalizedQuery.StartsWith("chao ") ||
+                          normalizedQuery == "hello" || normalizedQuery == "hi" || normalizedQuery == "alo" ||
+                          normalizedQuery.Contains("ban la ai") || normalizedQuery.Contains("ai day") ||
+                          normalizedQuery.Contains("xin chao") || normalizedQuery.Contains("tro ly");
 
-        // 1. Kiểm tra nếu người dùng hỏi theo khung giờ cụ thể (VD: "sau 8 gio dem", "suat muon", "suat sang"...)
+        if (isGreeting)
+        {
+            return new AiChatResponseDto
+            {
+                ReplyMessage = "Chào bạn! Tôi là Starlight AI - trợ lý điện ảnh rạp Starlight Cinema. Hôm nay rạp có nhiều suất chiếu phim đặc sắc (hành động, tình cảm, hài hước, hoạt hình). Bạn muốn tìm phim theo thể loại nào hoặc đi xem vào khung giờ mấy giờ nè?",
+                Recommendations = new List<AiMovieRecommendationDto>()
+            };
+        }
+
+        // 2. Kiem tra hoi khung gio cu the (chi khi khong phai hoi the loai)
         bool hasSpecificTimeFilter = (timeFilterStart > TimeSpan.Zero || timeFilterEnd < new TimeSpan(23, 59, 59));
-        if (hasSpecificTimeFilter)
+        bool hasGenreKeyword = normalizedQuery.Contains("hanh dong") || normalizedQuery.Contains("tinh cam") ||
+                               normalizedQuery.Contains("hoat hinh") || normalizedQuery.Contains("gia dinh") ||
+                               normalizedQuery.Contains("hai");
+
+        if (hasSpecificTimeFilter && !hasGenreKeyword)
         {
             var moviesWithTimeShowtimes = activeMovies
                 .Select(m => new
                 {
                     Movie = m,
-                    Showtimes = allShowtimes.Where(s => s.MovieId == m.MovieId && s.StartTime.Date == targetDate.Date && s.StartTime.TimeOfDay >= timeFilterStart && s.StartTime.TimeOfDay <= timeFilterEnd).OrderBy(s => s.StartTime).ToList()
+                    Showtimes = upcomingShowtimes
+                        .Where(s => s.MovieId == m.MovieId &&
+                                    s.StartTime.Date == targetDate.Date &&
+                                    s.StartTime.TimeOfDay >= timeFilterStart &&
+                                    s.StartTime.TimeOfDay <= timeFilterEnd)
+                        .OrderBy(s => s.StartTime)
+                        .GroupBy(s => s.StartTime)
+                        .Select(g => g.First())
+                        .ToList()
                 })
                 .Where(x => x.Showtimes.Any())
                 .ToList();
 
             if (moviesWithTimeShowtimes.Any())
             {
+                var recs = new List<AiMovieRecommendationDto>();
                 double score = 95.0;
                 foreach (var item in moviesWithTimeShowtimes)
                 {
                     var showtimeStr = string.Join(", ", item.Showtimes.Select(s => s.StartTime.ToString("HH:mm")));
-                    recommendations.Add(new AiMovieRecommendationDto
+                    recs.Add(new AiMovieRecommendationDto
                     {
                         Movie = item.Movie,
                         RelevanceScore = score,
@@ -244,172 +377,68 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
                     });
                     score -= 5.0;
                 }
-                return recommendations;
+
+                return new AiChatResponseDto
+                {
+                    ReplyMessage = $"Tôi tìm thấy {recs.Count} bộ phim có suất chiếu phù hợp trong khung giờ bạn yêu cầu:",
+                    Recommendations = recs
+                };
             }
             else
             {
-                // RẠP THỰC TẾ KHÔNG CÓ SUẤT NÀO TRONG KHUNG GIỜ NÀY -> CÓ SAO NÓI VẬY!
-                var latestShowtimeToday = allShowtimes
-                    .Where(s => s.StartTime.Date == targetDate.Date)
-                    .OrderByDescending(s => s.StartTime)
-                    .FirstOrDefault();
-
-                if (latestShowtimeToday != null)
+                return new AiChatResponseDto
                 {
-                    var movie = activeMovies.FirstOrDefault(m => m.MovieId == latestShowtimeToday.MovieId);
-                    if (movie != null)
-                    {
-                        var timeStr = latestShowtimeToday.StartTime.ToString("HH:mm");
-                        recommendations.Add(new AiMovieRecommendationDto
-                        {
-                            Movie = movie,
-                            RelevanceScore = 80.0,
-                            MatchReason = $"Rất tiếc hiện tại rạp không có suất chiếu nào phù hợp với khung giờ này. Suất chiếu muộn nhất còn lại hôm nay là lúc {timeStr} (phim {movie.Title}) bạn nhé!",
-                            SuggestedShowtimes = new List<Showtime> { latestShowtimeToday }
-                        });
-                        return recommendations;
-                    }
-                }
-
-                // Nếu cả ngày hôm nay không còn suất nào nữa:
-                return new List<AiMovieRecommendationDto>();
+                    ReplyMessage = $"Rất tiếc hiện tại rạp không còn suất chiếu nào trong khung giờ này hôm nay. Bạn có thể tham khảo các suất chiếu khác trong ngày nhé!",
+                    Recommendations = new List<AiMovieRecommendationDto>()
+                };
             }
         }
 
-        // 2. Ý định: "chiếu muộn nhất", "suất muộn nhất"
-        bool isLatestShowtimeQuery = normalizedQuery.Contains("muon nhat") || 
-                                     normalizedQuery.Contains("chieu muon") || 
-                                     normalizedQuery.Contains("xem muon") || 
-                                     normalizedQuery.Contains("khuya nhat") ||
-                                     (normalizedQuery.Contains("muon") && normalizedQuery.Contains("nhat"));
-
-        if (isLatestShowtimeQuery && activeMovies.Any())
-        {
-            var moviesWithLatest = activeMovies
-                .Select(m => new
-                {
-                    Movie = m,
-                    Showtimes = allShowtimes.Where(s => s.MovieId == m.MovieId && s.StartTime.Date == targetDate.Date).OrderByDescending(s => s.StartTime).ToList(),
-                    Latest = allShowtimes.Where(s => s.MovieId == m.MovieId && s.StartTime.Date == targetDate.Date).OrderByDescending(s => s.StartTime).FirstOrDefault()
-                })
-                .Where(x => x.Latest != null)
-                .OrderByDescending(x => x.Latest!.StartTime.TimeOfDay)
-                .ToList();
-
-            if (moviesWithLatest.Any())
-            {
-                double topScore = 99.0;
-                foreach (var item in moviesWithLatest)
-                {
-                    var latestTimeStr = item.Latest!.StartTime.ToString("HH:mm");
-                    recommendations.Add(new AiMovieRecommendationDto
-                    {
-                        Movie = item.Movie,
-                        RelevanceScore = topScore,
-                        MatchReason = topScore >= 98.0
-                            ? $"Bộ phim có suất chiếu muộn nhất rạp hôm nay (lúc {latestTimeStr}), rất lý tưởng cho bạn xem phim tối!"
-                            : $"Phim có suất chiếu muộn lúc {latestTimeStr}.",
-                        SuggestedShowtimes = item.Showtimes
-                    });
-                    topScore = Math.Max(70.0, topScore - 5.0);
-                }
-                return recommendations;
-            }
-            else
-            {
-                return new List<AiMovieRecommendationDto>();
-            }
-        }
-
-        // 3. Ý định: "chiếu sớm nhất"
-        bool isEarliestShowtimeQuery = normalizedQuery.Contains("som nhat") || 
-                                       normalizedQuery.Contains("chieu som") || 
-                                       normalizedQuery.Contains("xem som");
-
-        if (isEarliestShowtimeQuery && activeMovies.Any())
-        {
-            var moviesWithEarliest = activeMovies
-                .Select(m => new
-                {
-                    Movie = m,
-                    Showtimes = allShowtimes.Where(s => s.MovieId == m.MovieId && s.StartTime.Date == targetDate.Date).OrderBy(s => s.StartTime).ToList(),
-                    Earliest = allShowtimes.Where(s => s.MovieId == m.MovieId && s.StartTime.Date == targetDate.Date).OrderBy(s => s.StartTime).FirstOrDefault()
-                })
-                .Where(x => x.Earliest != null)
-                .OrderBy(x => x.Earliest!.StartTime.TimeOfDay)
-                .ToList();
-
-            if (moviesWithEarliest.Any())
-            {
-                double topScore = 99.0;
-                foreach (var item in moviesWithEarliest)
-                {
-                    var earliestTimeStr = item.Earliest!.StartTime.ToString("HH:mm");
-                    recommendations.Add(new AiMovieRecommendationDto
-                    {
-                        Movie = item.Movie,
-                        RelevanceScore = topScore,
-                        MatchReason = $"Bộ phim có suất chiếu sớm nhất trong ngày lúc {earliestTimeStr}.",
-                        SuggestedShowtimes = item.Showtimes
-                    });
-                    topScore = Math.Max(70.0, topScore - 5.0);
-                }
-                return recommendations;
-            }
-        }
-
-        // 4. Tìm kiếm theo thể loại, tâm trạng, đạo diễn, tên phim
-        bool isGeneralBrowseQuery = IsGeneralBrowseQuery(normalizedQuery);
-
+        // 3. Cham diem theo the loai, dien vien, dao dien, tu khoa
+        var scoredList = new List<AiMovieRecommendationDto>();
         foreach (var movie in activeMovies)
         {
-            var (score, matchReasons) = CalculateSemanticScore(movie, normalizedQuery, isGeneralBrowseQuery);
-
-            if (score > 35.0)
+            var (score, matchReasons) = CalculateLocalMovieMatch(movie, normalizedQuery);
+            if (score >= 50.0)
             {
-                var movieShowtimes = allShowtimes
-                    .Where(st => st.MovieId == movie.MovieId && st.StartTime.Date == targetDate.Date)
-                    .OrderBy(st => st.StartTime)
+                var movieShowtimes = upcomingShowtimes
+                    .Where(s => s.MovieId == movie.MovieId && s.StartTime.Date == targetDate.Date)
+                    .OrderBy(s => s.StartTime)
+                    .GroupBy(s => s.StartTime)
+                    .Select(g => g.First())
                     .ToList();
 
-                var reasonBuilder = new StringBuilder();
-                if (matchReasons.Any())
-                {
-                    reasonBuilder.Append(string.Join(", ", matchReasons));
-                }
-                else
-                {
-                    reasonBuilder.Append("Phù hợp với sở thích của bạn");
-                }
-
-                if (!movieShowtimes.Any())
-                {
-                    reasonBuilder.Append(" (Hôm nay phim tạm thời chưa có suất chiếu tiếp theo)");
-                }
-
-                recommendations.Add(new AiMovieRecommendationDto
+                scoredList.Add(new AiMovieRecommendationDto
                 {
                     Movie = movie,
                     RelevanceScore = Math.Min(99.0, Math.Round(score, 1)),
-                    MatchReason = reasonBuilder.ToString(),
-                    SuggestedShowtimes = movieShowtimes // CHỈ LẤY SUẤT THỰC TẾ, KHÔNG BỐC ĐẠI QUÁ KHỨ!
+                    MatchReason = matchReasons.Any() ? string.Join("; ", matchReasons) : "Phim phù hợp với tìm kiếm của bạn",
+                    SuggestedShowtimes = movieShowtimes
                 });
             }
         }
 
-        return recommendations.OrderByDescending(r => r.RelevanceScore).ToList();
+        if (scoredList.Any())
+        {
+            var ordered = scoredList.OrderByDescending(r => r.RelevanceScore).Take(4).ToList();
+            return new AiChatResponseDto
+            {
+                ReplyMessage = $"Dạ, tôi tìm thấy {ordered.Count} bộ phim phù hợp nhất với yêu cầu của bạn:",
+                Recommendations = ordered
+            };
+        }
+
+        // 4. Neu khong tim thay phim nao phu hop
+        return new AiChatResponseDto
+        {
+            ReplyMessage = $"Rất tiếc hiện tại rạp chưa có suất chiếu phù hợp với yêu cầu '{originalQuery}'. Bạn có thể tham khảo các phim bom tấn đang chiếu tối nay tại rạp như Godzilla x Kong, Dune 2, Lật Mặt 7 hoặc Mai nhé!",
+            Recommendations = new List<AiMovieRecommendationDto>()
+        };
     }
 
-    private bool IsGeneralBrowseQuery(string query)
+    private (double Score, List<string> Reasons) CalculateLocalMovieMatch(Movie movie, string query)
     {
-        return query.Contains("co phim gi") || query.Contains("danh sach phim") ||
-               query.Contains("phim dang chieu") || query.Contains("phim hot") ||
-               query.Contains("tat ca phim") || query.Contains("hom nay co gi") || query.Contains("rap co gi");
-    }
-
-    private (double Score, List<string> Reasons) CalculateSemanticScore(Movie movie, string query, bool isGeneralBrowse)
-    {
-        double score = 30.0;
+        double score = 20.0;
         var reasons = new List<string>();
 
         string titleNorm = NormalizeText(movie.Title);
@@ -417,82 +446,45 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         string descNorm = NormalizeText(movie.Description ?? string.Empty);
         string directorNorm = NormalizeText(movie.Director ?? string.Empty);
         string castNorm = NormalizeText(movie.Cast ?? string.Empty);
-        string rating = movie.AgeRating?.ToUpperInvariant().Trim() ?? "P";
 
-        if (isGeneralBrowse)
-        {
-            score += 35;
-            reasons.Add("Phim đang chiếu tại rạp");
-            return (score, reasons);
-        }
-
-        // 1. Khớp chính xác tên phim hoặc một phần tên phim
+        // 1. Khop ten phim
         if (titleNorm.Contains(query) || query.Contains(titleNorm))
         {
-            score += 60;
+            score += 65;
             reasons.Add($"Khớp tên phim: {movie.Title}");
         }
 
-        // 2. Tìm theo nhân vật nổi tiếng
+        // 2. Nhan vat / Thuong hieu
         if (query.Contains("gau po") && (titleNorm.Contains("panda") || descNorm.Contains("po")))
         {
-            score += 70;
-            reasons.Add("Phim có chú gấu Po (Kung Fu Panda)");
+            score += 75;
+            reasons.Add("Phim chú gấu Po (Kung Fu Panda)");
         }
         else if ((query.Contains("kong") || query.Contains("godzilla")) && (titleNorm.Contains("godzilla") || titleNorm.Contains("kong") || descNorm.Contains("titan")))
         {
-            score += 70;
+            score += 75;
             reasons.Add("Đại chiến quái thú Godzilla x Kong");
         }
         else if (query.Contains("sau cat") && (titleNorm.Contains("dune") || descNorm.Contains("cat")))
         {
-            score += 70;
+            score += 75;
             reasons.Add("Siêu phẩm viễn tưởng Xứ Cát (Dune 2)");
         }
 
-        // 3. Tìm theo Đạo diễn / Diễn viên nổi tiếng
+        // 3. Dao dien / Dien vien
         if (query.Contains("tran thanh") && (directorNorm.Contains("tran thanh") || castNorm.Contains("tran thanh")))
         {
-            score += 75;
+            score += 70;
             reasons.Add("Tác phẩm của đạo diễn Trấn Thành");
         }
         else if (query.Contains("ly hai") && (directorNorm.Contains("ly hai") || castNorm.Contains("ly hai")))
         {
-            score += 75;
+            score += 70;
             reasons.Add("Phim của đạo diễn Lý Hải");
         }
-        else if (query.Contains("zendaya") && castNorm.Contains("zendaya"))
-        {
-            score += 70;
-            reasons.Add("Phim có sự tham gia của Zendaya");
-        }
-        else if (query.Contains("jack black") && castNorm.Contains("jack black"))
-        {
-            score += 70;
-            reasons.Add("Phim do Jack Black lồng tiếng");
-        }
 
-        // 4. Nhóm Gia đình, Trẻ em, Hài hước
-        bool isFamilyQuery = query.Contains("gia dinh") || query.Contains("tre em") || 
-                             query.Contains("hoat hinh") || query.Contains("hai huoc") ||
-                             query.Contains("cuoi") || query.Contains("xa stress");
-
-        if (isFamilyQuery)
-        {
-            if (rating == "P" || rating == "K")
-            {
-                score += 45;
-                reasons.Add($"Phim nhãn {rating} phù hợp cho gia đình và trẻ em");
-            }
-            if (genreNorm.Contains("hoat hinh") || genreNorm.Contains("hai"))
-            {
-                score += 40;
-                reasons.Add("Thể loại hoạt hình, hài hước vui nhộn");
-            }
-        }
-
-        // 5. Nhóm Hành động, Bom tấn, Viễn tưởng
-        bool isActionQuery = query.Contains("hanh dong") || query.Contains("bom tan") || 
+        // 4. The loai: Hanh dong / Vien tuong
+        bool isActionQuery = query.Contains("hanh dong") || query.Contains("bom tan") ||
                              query.Contains("chien dau") || query.Contains("vien tuong") ||
                              query.Contains("danh nhau") || query.Contains("quai vat");
 
@@ -500,36 +492,35 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         {
             if (genreNorm.Contains("hanh dong") || genreNorm.Contains("vien tuong"))
             {
-                score += 45;
-                reasons.Add("Thể loại hành động, viễn tưởng mãn nhãn");
+                score += 55;
+                reasons.Add("Thể loại hành động, viễn tưởng đỉnh cao");
             }
         }
 
-        // 6. Nhóm Tình cảm, Tâm lý
-        bool isRomanceQuery = query.Contains("tinh cam") || query.Contains("tam ly") || 
+        // 5. The loai: Gia dinh / Hoat hinh / Hai huoc
+        bool isFamilyQuery = query.Contains("gia dinh") || query.Contains("tre em") ||
+                             query.Contains("hoat hinh") || query.Contains("hai huoc") ||
+                             query.Contains("cuoi") || query.Contains("xa stress");
+
+        if (isFamilyQuery)
+        {
+            if (genreNorm.Contains("hoat hinh") || genreNorm.Contains("hai") || genreNorm.Contains("gia dinh"))
+            {
+                score += 50;
+                reasons.Add("Thể loại gia đình, hoạt hình vui vẻ");
+            }
+        }
+
+        // 6. The loai: Tinh cam / Tam ly
+        bool isRomanceQuery = query.Contains("tinh cam") || query.Contains("tam ly") ||
                               query.Contains("lang man") || query.Contains("hen ho") || query.Contains("tinh yeu");
 
         if (isRomanceQuery)
         {
             if (genreNorm.Contains("tam ly") || genreNorm.Contains("tinh cam"))
             {
-                score += 50;
+                score += 55;
                 reasons.Add("Nội dung tâm lý tình cảm sâu sắc");
-            }
-        }
-
-        // 7. Token Matching
-        var queryWords = query.Split(new[] { ' ', ',', '.', '?', '!' }, StringSplitOptions.RemoveEmptyEntries)
-                              .Where(w => w.Length >= 2)
-                              .ToList();
-
-        int matchedWords = 0;
-        foreach (var word in queryWords)
-        {
-            if (titleNorm.Contains(word) || genreNorm.Contains(word))
-            {
-                score += 15;
-                matchedWords++;
             }
         }
 
@@ -546,23 +537,19 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         {
             return (new TimeSpan(21, 0, 0), new TimeSpan(23, 59, 59), "Ưu tiên các suất chiếu sau 21h00");
         }
-        if (query.Contains("10 gio dem") || query.Contains("10h dem") || query.Contains("22h") || query.Contains("sau 10"))
-        {
-            return (new TimeSpan(22, 0, 0), new TimeSpan(23, 59, 59), "Ưu tiên các suất chiếu sau 22h00");
-        }
         if (query.Contains("dem") || query.Contains("muon") || query.Contains("khuya"))
         {
             return (new TimeSpan(21, 0, 0), new TimeSpan(23, 59, 59), "Ưu tiên các suất chiếu muộn sau 21h00");
         }
-        if (query.Contains("toi nay") || query.Contains("buoi toi") || query.Contains("toi"))
+        if (query.Contains("toi nay") || query.Contains("buoi toi") || (query.Contains("toi") && !query.Contains("toi thay") && !query.Contains("toi nghi")))
         {
-            return (new TimeSpan(18, 0, 0), new TimeSpan(21, 30, 0), "Ưu tiên các suất chiếu buổi tối (18h00 - 21h30)");
+            return (new TimeSpan(18, 0, 0), new TimeSpan(23, 59, 59), "Ưu tiên các suất chiếu buổi tối (sau 18h00)");
         }
-        if (query.Contains("chieu") || query.Contains("buoi chieu"))
+        if (query.Contains("buoi chieu") || query.Contains("chieu nay") || query.Contains("chieu mai") || query.Contains("dau chieu"))
         {
             return (new TimeSpan(13, 0, 0), new TimeSpan(18, 0, 0), "Ưu tiên các suất chiếu buổi chiều (13h00 - 18h00)");
         }
-        if (query.Contains("sang") || query.Contains("buoi sang"))
+        if (query.Contains("buoi sang") || query.Contains("sang nay") || query.Contains("sang mai"))
         {
             return (new TimeSpan(8, 0, 0), new TimeSpan(12, 0, 0), "Ưu tiên các suất chiếu buổi sáng (08h00 - 12h00)");
         }
