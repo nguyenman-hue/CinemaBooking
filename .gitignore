@@ -22,3 +22,6 @@ TestResults/
 
 appsettings.Local.json
 Cinema.Web/appsettings.Local.json
+
+# Private scripts
+kich_ban*
