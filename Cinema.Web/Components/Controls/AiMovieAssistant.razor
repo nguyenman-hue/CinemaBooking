@@ -118,12 +118,12 @@
                                             </div>
                                         </div>
 
-                                        <!-- Showtimes Chips -->
-                                        @if (rec.SuggestedShowtimes.Any())
+                                        <!-- Showtimes Chips (Chỉ hiển thị các suất chiếu thực tế sắp tới) -->
+                                        @if (rec.SuggestedShowtimes != null && rec.SuggestedShowtimes.Any(st => st.StartTime > DateTime.Now))
                                         {
                                             <div class="mt-2 pt-2 border-top border-white border-opacity-10 d-flex flex-wrap gap-1 align-items-center">
                                                 <small style="font-size: 0.68rem; color: #f59e0b;" class="fw-bold">Suất chiếu:</small>
-                                                @foreach (var st in rec.SuggestedShowtimes.Take(4))
+                                                @foreach (var st in rec.SuggestedShowtimes.Where(st => st.StartTime > DateTime.Now).Take(4))
                                                 {
                                                     <a href="/booking/@st.ShowtimeId" 
                                                        class="btn btn-sm btn-outline-warning py-0 px-2 rounded-pill fw-bold" 
@@ -131,6 +131,14 @@
                                                         @st.StartTime.ToString("HH:mm")
                                                     </a>
                                                 }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="mt-2 pt-2 border-top border-white border-opacity-10">
+                                                <span class="badge bg-secondary bg-opacity-50 text-white-50" style="font-size: 0.68rem;">
+                                                    <i class="bi bi-clock-history me-1"></i>Hôm nay không còn suất chiếu
+                                                </span>
                                             </div>
                                         }
                                     </div>
@@ -248,12 +256,22 @@
             var recs = await SemanticSearchUseCase.ExecuteAsync(userText);
 
             // 2. Thêm phản hồi của AI vào luồng hội thoại (bên trái)
+            string aiResponseText;
+            if (recs != null && recs.Any())
+            {
+                aiResponseText = recs.Count == 1 
+                    ? "Dạ, em gửi bạn thông tin bộ phim phù hợp nhất với yêu cầu:" 
+                    : $"Dạ, em đã tìm thấy {recs.Count} bộ phim phù hợp nhất với yêu cầu của bạn:";
+            }
+            else
+            {
+                aiResponseText = "Dạ rất tiếc, hiện tại rạp không có suất chiếu nào phù hợp với yêu cầu này của bạn. Bạn hãy thử chọn ngày khác hoặc quay lại vào ngày mai nhé!";
+            }
+
             _messages.Add(new AiChatMessageItem
             {
                 IsUser = false,
-                Text = (recs != null && recs.Any()) 
-                    ? $"Dạ, em đã tìm thấy {recs.Count} bộ phim phù hợp nhất với yêu cầu của bạn:" 
-                    : "Dạ chưa tìm thấy phim nào khớp chính xác với câu này. Bạn hãy thử miêu tả theo thể loại, tâm trạng hoặc giờ chiếu khác nhé!",
+                Text = aiResponseText,
                 Recommendations = recs,
                 Timestamp = DateTime.Now
             });
