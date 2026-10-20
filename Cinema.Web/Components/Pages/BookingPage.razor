@@ -152,7 +152,7 @@
                     }
 
                     <!-- Customer Information Form (EditForm + DataAnnotations) -->
-                    <EditForm Model="@_bookingModel" OnValidSubmit="HandleSubmitBooking">
+                    <EditForm Model="@_bookingModel" OnValidSubmit="OpenPaymentModal">
                         <DataAnnotationsValidator />
 
                         <div class="mb-2">
@@ -181,27 +181,21 @@
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold mb-1" style="color: #cbd5e1;">Phương thức thanh toán</label>
-                            <select class="form-select form-select-sm" @bind="_bookingModel.PaymentMethod">
-                                <option value="VNPAY-QR">VNPAY-QR (Quét mã thanh toán tức thì)</option>
-                                <option value="ATM / Thẻ Nội Địa">Thẻ ATM / Tài Khoản Ngân Hàng</option>
-                                <option value="Ví MoMo">Ví Điện Tử MoMo</option>
-                            </select>
+                            <div class="p-2 rounded border border-warning border-opacity-50 d-flex align-items-center gap-2" style="background: rgba(234, 179, 8, 0.08);">
+                                <i class="bi bi-qr-code-scan text-warning fs-5"></i>
+                                <div>
+                                    <div class="fw-bold text-white small">Chuyển khoản VietQR 24/7 (MBBank)</div>
+                                    <div class="text-white-50" style="font-size: 0.75rem;">Quét mã thanh toán tức thì qua mọi app ngân hàng &amp; MoMo</div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Submit Button -->
                         <button type="submit" 
                                 class="btn btn-cinema-gold w-100 py-3 fw-bold" 
                                 disabled="@(_selectedSeats.Count == 0 || _isSubmitting || _isPastShowtime)">
-                            @if (_isSubmitting)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2 text-dark"></span>
-                                <span>Đang xử lý đặt vé...</span>
-                            }
-                            else
-                            {
-                                <i class="bi bi-check-circle-fill me-2"></i>
-                                <span>Xác Nhận &amp; Đặt Vé (@_totalAmount.ToString("N0") đ)</span>
-                            }
+                            <i class="bi bi-qr-code-scan me-2"></i>
+                            <span>Thanh Toán VietQR (@_totalAmount.ToString("N0") đ)</span>
                         </button>
                     </EditForm>
                 </div>
@@ -210,7 +204,113 @@
     }
 </div>
 
+@if (_showPaymentModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); z-index: 1050;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+            <div class="modal-content text-white" style="background: #111827; border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+                <div class="modal-header border-secondary border-opacity-50 pb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-qr-code-scan text-warning fs-5"></i>
+                        <h5 class="modal-title fw-bold text-warning mb-0" style="font-size: 1.1rem;">Thanh Toán Vé - VietQR</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" aria-label="Close" @onclick="ClosePaymentModal" disabled="@_isSubmitting"></button>
+                </div>
+                <div class="modal-body text-center p-3">
+                    <!-- Tóm tắt vé -->
+                    <div class="p-2 mb-3 rounded bg-dark border border-secondary border-opacity-25 text-start small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-white-50">Phim:</span>
+                            <span class="fw-bold text-white text-truncate" style="max-width: 250px;">@(_showtime?.MovieTitle ?? "")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-white-50">Phòng &amp; Suất:</span>
+                            <span class="text-white">@(_showtime?.AuditoriumName ?? "") (@_showtime?.StartTime.ToString("HH:mm"))</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-white-50">Ghế chọn (@_selectedSeats.Count):</span>
+                            <span class="fw-bold text-warning">@string.Join(", ", _selectedSeats.Select(s => s.SeatDisplayName))</span>
+                        </div>
+                        <div class="d-flex justify-content-between pt-1 border-top border-secondary border-opacity-50">
+                            <span class="text-white-50">Tổng tiền cần thanh toán:</span>
+                            <strong class="fs-5 text-warning">@_totalAmount.ToString("N0") đ</strong>
+                        </div>
+                    </div>
+
+                    <!-- Ảnh VietQR MBBank chính thức -->
+                    <div class="p-2 bg-white rounded-3 shadow-sm d-inline-block border mb-2" style="max-width: 100%;">
+                        <img src="@GetVietQrUrl()" alt="Mã VietQR Thanh Toán" class="img-fluid rounded" style="max-height: 340px;" />
+                    </div>
+
+                    <div class="text-white-50 small mt-1 mb-2" style="font-size: 0.8rem;">
+                        <i class="bi bi-phone me-1 text-info"></i>Quét bằng MBBank, Vietcombank, Techcombank, MoMo...
+                    </div>
+
+                    
+                </div>
+                <div class="modal-footer border-secondary border-opacity-50 pt-2 d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1" @onclick="ClosePaymentModal" disabled="@_isSubmitting">
+                        Quay Lại
+                    </button>
+                    <button type="button" class="btn btn-success fw-bold flex-grow-1 py-2" @onclick="HandleConfirmPayment" disabled="@_isSubmitting">
+                        @if (_isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span>Đang xuất vé...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check2-circle me-1"></i>
+                            <span>Hoàn Tất Thanh Toán</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    private bool _showPaymentModal = false;
+
+    private void OpenPaymentModal()
+    {
+        _bookingError = null;
+        if (_showtime == null || _showtime.StartTime <= DateTime.Now)
+        {
+            _bookingError = "Suất chiếu này đã diễn ra hoặc không tồn tại, không thể đặt vé!";
+            return;
+        }
+
+        if (!_selectedSeats.Any())
+        {
+            _bookingError = "Vui lòng chọn ít nhất 1 ghế trước khi thanh toán!";
+            return;
+        }
+
+        _showPaymentModal = true;
+    }
+
+    private void ClosePaymentModal()
+    {
+        if (!_isSubmitting)
+        {
+            _showPaymentModal = false;
+        }
+    }
+
+    private string GetVietQrUrl()
+    {
+        long amount = Convert.ToInt64(_totalAmount);
+        string phone = !string.IsNullOrWhiteSpace(_bookingModel.CustomerPhone) ? _bookingModel.CustomerPhone : "KHACH";
+        string memo = Uri.EscapeDataString($"STARLIGHT {phone}");
+        return $"https://img.vietqr.io/image/MB-0053037389999-compact2.svg?amount={amount}&addInfo={memo}&accountName=NGUYEN%20VIET%20MAN";
+    }
+
+    private async Task HandleConfirmPayment()
+    {
+        await HandleSubmitBooking();
+    }
     [Parameter] public int ShowtimeId { get; set; }
 
     private SeatMapComponent? _seatMapRef;
@@ -227,7 +327,7 @@
         CustomerName = "",
         CustomerEmail = "",
         CustomerPhone = "",
-        PaymentMethod = "VNPAY-QR"
+        PaymentMethod = "VietQR (MBBank)"
     };
 
     protected override async Task OnInitializedAsync()

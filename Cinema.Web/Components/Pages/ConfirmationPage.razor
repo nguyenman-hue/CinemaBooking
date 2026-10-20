@@ -158,7 +158,7 @@
 
                             <!-- QR Code Representation -->
                             <div class="text-center p-2 bg-light rounded border">
-                                <img src="@($"https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={Uri.EscapeDataString(_booking.BookingReference)}")"
+                                <img src="@($"https://quickchart.io/qr?text={Uri.EscapeDataString(_booking.BookingReference)}&size=100")"
                                      alt="QR Code" width="80" height="80" class="border rounded bg-white p-1" />
                                 <div class="font-monospace small text-muted mt-1" style="font-size: 0.65rem;">Quét tại cổng soát vé</div>
                             </div>

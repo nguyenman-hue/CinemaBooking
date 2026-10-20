@@ -847,3 +847,91 @@ code {
         visibility: hidden !important;
     }
 }
+
+/* ==========================================================================
+   NAVBAR RESPONSIVE (DESKTOP & MOBILE)
+   ========================================================================== */
+@media (max-width: 991.98px) {
+    .cinema-navbar {
+        padding: 0.65rem 1rem !important;
+    }
+
+    .cinema-nav-collapse {
+        width: 100% !important;
+        margin-top: 0.75rem !important;
+        background: rgba(15, 23, 42, 0.98) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 14px;
+        padding: 1.15rem 1rem !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        animation: fadeInDown 0.25s ease-out;
+    }
+
+    .cinema-nav-link {
+        padding: 0.65rem 1rem !important;
+        border-radius: 8px !important;
+        font-size: 0.95rem !important;
+        width: 100%;
+        display: flex !important;
+        align-items: center;
+    }
+
+    .cinema-nav-link:hover, .cinema-nav-link.active {
+        background: rgba(245, 158, 11, 0.15) !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .cinema-nav-collapse {
+        width: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .cinema-nav-link {
+        width: auto !important;
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   MOBILE FLOATING AI BUTTON (< 576px)
+   ========================================================================== */
+@media (max-width: 576px) {
+    .ai-floating-btn {
+        bottom: 16px !important;
+        right: 16px !important;
+        width: 48px !important;
+        height: 48px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        justify-content: center !important;
+        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6) !important;
+    }
+
+    .ai-chat-popup {
+        bottom: 74px !important;
+        right: 12px !important;
+        left: 12px !important;
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        height: calc(100vh - 95px) !important;
+        max-height: calc(100vh - 95px) !important;
+        border-radius: 16px !important;
+    }
+}
