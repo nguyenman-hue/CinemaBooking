@@ -1,4 +1,4 @@
-﻿﻿@using Cinema.UseCases.PluginInterfaces.StateStore
+﻿﻿﻿@using Cinema.UseCases.PluginInterfaces.StateStore
 @inject NavigationManager Navigation
 @inject CustomAuthStateProvider AuthStateProvider
 @inject UserSessionService UserSession
@@ -130,8 +130,9 @@
             await JSRuntime.InvokeVoidAsync("clearCinemaSession");
         }
         catch { }
-        // Điều hướng về Trang Chủ trước khi huỷ phiên đăng nhập để tránh chớp màn hình 403
-        Navigation.NavigateTo("/");
+        // 1. Đăng xuất bình thường
         await AuthStateProvider.LogoutAsync();
+        // 2. Về Trang Chủ
+        Navigation.NavigateTo("/");
     }
 }
