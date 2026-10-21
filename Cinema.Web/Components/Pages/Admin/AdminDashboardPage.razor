@@ -1,0 +1,574 @@
+﻿@page "/admin"
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@inject IViewDashboardOverviewUseCase ViewDashboardUseCase
+@inject NavigationManager Navigation
+
+<PageTitle>Tổng Quan Quản Trị - Starlight Cinema Huế</PageTitle>
+
+<div class="container-fluid px-3 px-lg-4 py-4">
+    <!-- Header Area -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3"
+         style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-grid-1x2-fill text-warning fs-4"></i>
+                <h2 class="fw-bold text-white mb-0" style="letter-spacing: -0.5px;">Tổng Quan Hệ Thống Rạp Phim</h2>
+            </div>
+            <p class="mb-0 small" style="color: #94a3b8;">
+                Thống kê hoạt động kinh doanh, tình hình đặt vé và hiệu suất rạp Starlight Cinema Huế.
+            </p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <div class="px-3 py-2 rounded-pill d-flex align-items-center gap-2"
+                 style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.1); color: #cbd5e1; font-size: 0.85rem;">
+                <i class="bi bi-calendar-event text-warning"></i>
+                <span>@VietnamTime.Today.ToString("dd/MM/yyyy") (Hôm nay)</span>
+            </div>
+            <button class="btn btn-sm btn-outline-warning rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-1"
+                    @onclick="LoadDataAsync" disabled="@_isLoading" title="Tải lại số liệu">
+                <i class="bi bi-arrow-clockwise @(_isLoading ? "spin-animation" : "")"></i>
+                <span class="d-none d-sm-inline">Tải lại</span>
+            </button>
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;"></div>
+            <div class="mt-3 text-white-50">Đang đồng bộ số liệu thời gian thực...</div>
+        </div>
+    }
+    else
+    {
+        <!-- 1. Row 4 KPI Cards with Icons & Harmonious Colors -->
+        <div class="row g-3 mb-4">
+            <!-- Card 1: Doanh Thu -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card p-3 p-xl-4 h-100 border-0 shadow-sm"
+                     style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="small fw-semibold" style="color: #94a3b8;">Doanh Thu</span>
+                        <div class="d-flex align-items-center justify-content-center rounded-3"
+                             style="width: 42px; height: 42px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.25); color: #10b981;">
+                            <i class="bi bi-cash-stack fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-white mb-2" style="letter-spacing: -0.5px;">
+                        @_dashboard.TodayRevenue.ToString("N0") đ
+                    </h3>
+                    <div class="d-flex align-items-center gap-1 small">
+                        @if (_dashboard.RevenueGrowthPercent >= 0)
+                        {
+                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.RevenueGrowthPercent%</span>
+                        }
+                        else
+                        {
+                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.RevenueGrowthPercent%</span>
+                        }
+                        <span style="color: #64748b;">so với hôm qua</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Tổng Vé Đã Bán -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card p-3 p-xl-4 h-100 border-0 shadow-sm"
+                     style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="small fw-semibold" style="color: #94a3b8;">Tổng Vé Đã Bán</span>
+                        <div class="d-flex align-items-center justify-content-center rounded-3"
+                             style="width: 42px; height: 42px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8;">
+                            <i class="bi bi-ticket-perforated-fill fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-white mb-2" style="letter-spacing: -0.5px;">
+                        @_dashboard.TodayTickets.ToString("N0") vé
+                    </h3>
+                    <div class="d-flex align-items-center gap-1 small">
+                        @if (_dashboard.TicketGrowthPercent >= 0)
+                        {
+                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.TicketGrowthPercent%</span>
+                        }
+                        else
+                        {
+                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.TicketGrowthPercent%</span>
+                        }
+                        <span style="color: #64748b;">so với hôm qua</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Phim Đang Chiếu -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card p-3 p-xl-4 h-100 border-0 shadow-sm"
+                     style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="small fw-semibold" style="color: #94a3b8;">Phim Đang Chiếu</span>
+                        <div class="d-flex align-items-center justify-content-center rounded-3"
+                             style="width: 42px; height: 42px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.25); color: #c084fc;">
+                            <i class="bi bi-film fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-white mb-2" style="letter-spacing: -0.5px;">
+                        @_dashboard.ActiveMoviesCount phim
+                    </h3>
+                    <div class="d-flex align-items-center gap-1 small">
+                        <span class="fw-bold text-success"><i class="bi bi-plus-lg"></i>+@_dashboard.NewMoviesThisMonth</span>
+                        <span style="color: #64748b;">phim mới tháng này</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Tỷ Lệ Lấp Đầy Ghế -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card p-3 p-xl-4 h-100 border-0 shadow-sm"
+                     style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="small fw-semibold" style="color: #94a3b8;">Tỷ Lệ Lấp Đầy Ghế</span>
+                        <div class="d-flex align-items-center justify-content-center rounded-3"
+                             style="width: 42px; height: 42px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24;">
+                            <i class="bi bi-pie-chart-fill fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-white mb-2" style="letter-spacing: -0.5px;">
+                        @_dashboard.OccupancyRateToday.ToString("F1")%
+                    </h3>
+                    <div class="d-flex align-items-center gap-1 small">
+                        @if (_dashboard.OccupancyGrowthPercent >= 0)
+                        {
+                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.OccupancyGrowthPercent%</span>
+                        }
+                        else
+                        {
+                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.OccupancyGrowthPercent%</span>
+                        }
+                        <span style="color: #64748b;">so với hôm qua</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Row Charts (Left: Area Line Chart, Right: Donut Chart) -->
+        <div class="row g-3 mb-4">
+            <!-- Left Chart: Doanh Thu Theo Ngày (Luminous Neon Wave) -->
+            <div class="col-12 col-lg-7">
+                <div class="card p-4 h-100 border-0 shadow-sm"
+                     style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                        <div>
+                            <h5 class="fw-bold text-white mb-0">Doanh Thu Theo Ngày</h5>
+                            <small style="color: #94a3b8;">Biểu đồ biến động doanh thu 7 ngày qua</small>
+                        </div>
+                        <div class="btn-group btn-group-sm p-1 rounded-pill" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <button class="btn btn-sm rounded-pill px-3 @(_chartPeriod == 0 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
+                                    @onclick="() => SetChartPeriod(0)">Theo ngày</button>
+                            <button class="btn btn-sm rounded-pill px-3 @(_chartPeriod == 1 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
+                                    @onclick="() => SetChartPeriod(1)">Tuần</button>
+                            <button class="btn btn-sm rounded-pill px-3 @(_chartPeriod == 2 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
+                                    @onclick="() => SetChartPeriod(2)">Tháng</button>
+                        </div>
+                    </div>
+
+                    <!-- Glowing SVG Area Chart -->
+                    <div class="w-100 position-relative" style="height: 240px;">
+                        <svg viewBox="0 0 600 220" class="w-100 h-100 overflow-visible" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="neonGradientArea" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#ec4899" stop-opacity="0.4" />
+                                    <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.35" />
+                                    <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.4" />
+                                </linearGradient>
+                                <linearGradient id="neonGradientStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#ec4899" />
+                                    <stop offset="50%" stop-color="#8b5cf6" />
+                                    <stop offset="100%" stop-color="#06b6d4" />
+                                </linearGradient>
+                                <filter id="glowWave" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feGaussianBlur stdDeviation="4" result="blur" />
+                                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                </filter>
+                            </defs>
+
+                            <!-- Horizontal Grid lines -->
+                            <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                            <line x1="0" y1="110" x2="600" y2="110" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                            <line x1="0" y1="170" x2="600" y2="170" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+
+                            <!-- Smooth Bezier Area Fill -->
+                            <path d="@_svgAreaPath" fill="url(#neonGradientArea)" />
+
+                            <!-- Smooth Bezier Stroke Line with Glow -->
+                            <path d="@_svgStrokePath" fill="none" stroke="url(#neonGradientStroke)" stroke-width="3.5" filter="url(#glowWave)" />
+
+                            <!-- Interactive Points -->
+                            @for (int i = 0; i < _chartPoints.Count; i++)
+                            {
+                                var pt = _chartPoints[i];
+                                <circle cx="@pt.X" cy="@pt.Y" r="5" fill="#ffffff" stroke="url(#neonGradientStroke)" stroke-width="3" style="cursor: pointer; transition: r 0.2s ease;">
+                                    <title>@($"{pt.Label}: {pt.Revenue:N0} đ")</title>
+                                </circle>
+                            }
+                        </svg>
+
+                        <!-- X-Axis Labels -->
+                        <div class="d-flex justify-content-between pt-2 px-1 text-muted small" style="font-size: 0.75rem;">
+                            @foreach (var d in _dashboard.DailyRevenues)
+                            {
+                                <div class="text-center">
+                                    <div class="fw-bold" style="color: #cbd5e1;">@d.DateLabel</div>
+                                    <div style="font-size: 0.7rem; color: #64748b;">@d.FullDateStr</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Chart: Phim Bán Nhiều Vé Nhất (Donut Chart) -->
+            <div class="col-12 col-lg-5">
+                <div class="card p-4 h-100 border-0 shadow-sm"
+                     style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
+                    <div class="mb-3">
+                        <h5 class="fw-bold text-white mb-0">Phim Bán Nhiều Vé Nhất</h5>
+                        <small style="color: #94a3b8;">Tỷ lệ thị phần vé theo từng bộ phim</small>
+                    </div>
+
+                    <div class="row align-items-center g-3 my-auto">
+                        <!-- Donut Graphic -->
+                        <div class="col-sm-5 text-center position-relative">
+                            <svg viewBox="0 0 160 160" style="width: 150px; height: 150px;" class="mx-auto transform-rotate">
+                                @{
+                                    double accumulatedAngle = 0;
+                                    double cx = 80, cy = 80, r = 55;
+                                }
+                                @foreach (var movie in _dashboard.TopMovies)
+                                {
+                                    double sweep = (movie.Percentage / 100.0) * 360.0;
+                                    if (sweep > 0)
+                                    {
+                                        string pathData = GetDonutSegmentPath(cx, cy, r, 20, accumulatedAngle, sweep);
+                                        <path d="@pathData" fill="@movie.ColorHex" style="transition: opacity 0.2s;" />
+                                        accumulatedAngle += sweep;
+                                    }
+                                }
+                            </svg>
+                            <!-- Center Text inside Donut -->
+                            <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none;">
+                                <div class="fw-bold text-white fs-5 mb-0">@_dashboard.TodayTickets</div>
+                                <small style="font-size: 0.7rem; color: #94a3b8;">Tổng Vé</small>
+                            </div>
+                        </div>
+
+                        <!-- Legend Items -->
+                        <div class="col-sm-7">
+                            <div class="d-flex flex-column gap-2">
+                                @foreach (var m in _dashboard.TopMovies.Take(4))
+                                {
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded-3"
+                                         style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                        <div class="d-flex align-items-center gap-2 text-truncate" style="max-width: 170px;">
+                                            <span class="rounded-circle d-inline-block flex-shrink-0" 
+                                                  style="width: 10px; height: 10px; background: @m.ColorHex; box-shadow: 0 0 8px @m.ColorHex;"></span>
+                                            <span class="small fw-semibold text-white text-truncate" title="@m.MovieTitle">@m.MovieTitle</span>
+                                        </div>
+                                        <span class="small fw-bold font-monospace" style="color: @m.ColorHex;">@m.Percentage.ToString("F0")%</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Row Tables (Left: Lịch Suất Chiếu Sắp Tới, Right: Đơn Đặt Vé Gần Đây) -->
+        <div class="row g-3">
+            <!-- Left Table: Lịch Suất Chiếu Sắp Tới -->
+            <div class="col-12 col-lg-6">
+                <div class="card p-4 h-100 border-0 shadow-sm"
+                     style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                        <div>
+                            <h5 class="fw-bold text-white mb-0">Lịch Suất Chiếu Sắp Tới</h5>
+                            <small style="color: #94a3b8;">Theo dõi tỷ lệ lấp đầy ghế theo từng phòng chiếu</small>
+                        </div>
+                        <a href="/admin/showtimes" class="btn btn-sm btn-link text-warning text-decoration-none fw-semibold">
+                            Tất cả <i class="bi bi-chevron-right small"></i>
+                        </a>
+                    </div>
+
+                    @if (!_dashboard.UpcomingShowtimes.Any())
+                    {
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+                            Chưa có suất chiếu nào tiếp theo trong hôm nay.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var st in _dashboard.UpcomingShowtimes.Take(4))
+                            {
+                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center p-3 rounded-3 gap-2"
+                                     style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img src="@(string.IsNullOrWhiteSpace(st.PosterUrl) ? "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=100" : st.PosterUrl)" 
+                                             alt="@st.MovieTitle" 
+                                             class="rounded-2 flex-shrink-0" 
+                                             style="width: 42px; height: 56px; object-fit: cover;" />
+                                        <div>
+                                            <h6 class="fw-bold text-white mb-1" style="font-size: 0.92rem;">@st.MovieTitle</h6>
+                                            <div class="d-flex align-items-center gap-2 small" style="color: #94a3b8; font-size: 0.78rem;">
+                                                <span><i class="bi bi-clock me-1 text-warning"></i>@st.StartTime.ToString("HH:mm") - @st.EndTime.ToString("HH:mm")</span>
+                                                <span>•</span>
+                                                <span class="badge bg-secondary-subtle text-light border border-secondary-subtle">@st.AuditoriumName</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Mini Progress Bar Seat Status -->
+                                    <div class="d-flex flex-column align-items-sm-end gap-1" style="min-width: 170px;">
+                                        <div class="d-flex align-items-center justify-content-between w-100 small">
+                                            <span style="font-size: 0.78rem; color: #94a3b8;">
+                                                @st.BookedSeats/@st.TotalSeats ghế
+                                            </span>
+                                            <span class="fw-bold font-monospace" style="color: @GetOccupancyColor(st.OccupancyPercent); font-size: 0.8rem;">
+                                                @st.OccupancyPercent.ToString("F0")%
+                                            </span>
+                                        </div>
+                                        <div class="progress w-100" style="height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 99px;">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: @(st.OccupancyPercent)%; background: @GetOccupancyGradient(st.OccupancyPercent); border-radius: 99px; box-shadow: 0 0 8px @GetOccupancyColor(st.OccupancyPercent);" 
+                                                 aria-valuenow="@st.OccupancyPercent" aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Right Table: Đơn Đặt Vé Gần Đây -->
+            <div class="col-12 col-lg-6">
+                <div class="card p-4 h-100 border-0 shadow-sm"
+                     style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                        <div>
+                            <h5 class="fw-bold text-white mb-0">Đơn Đặt Vé Gần Đây</h5>
+                            <small style="color: #94a3b8;">Giao dịch vé mới nhất qua cổng VietQR</small>
+                        </div>
+                        <a href="/admin/bookings" class="btn btn-sm btn-link text-warning text-decoration-none fw-semibold">
+                            Tất cả <i class="bi bi-chevron-right small"></i>
+                        </a>
+                    </div>
+
+                    @if (!_dashboard.RecentBookings.Any())
+                    {
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-receipt fs-3 d-block mb-2"></i>
+                            Chưa có đơn đặt vé nào được ghi nhận.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle small mb-0">
+                                <thead>
+                                    <tr style="color: #64748b; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+                                        <th>MÃ ĐƠN</th>
+                                        <th>KHÁCH HÀNG</th>
+                                        <th class="text-end">SỐ TIỀN</th>
+                                        <th class="text-center">TRẠNG THÁI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var b in _dashboard.RecentBookings.Take(5))
+                                    {
+                                        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                                            <td>
+                                                <span class="font-monospace fw-bold" style="color: #38bdf8; font-size: 0.82rem;">
+                                                    @b.BookingReference
+                                                </span>
+                                                <div class="text-muted" style="font-size: 0.7rem;">@b.BookingTime.ToString("HH:mm dd/MM")</div>
+                                            </td>
+                                            <td>
+                                                <span class="fw-semibold text-white">@(string.IsNullOrWhiteSpace(b.CustomerName) ? "Khách vãng lai" : b.CustomerName)</span>
+                                                <div class="text-muted" style="font-size: 0.7rem;">@b.PaymentMethod</div>
+                                            </td>
+                                            <td class="text-end fw-bold font-monospace" style="color: #f59e0b; font-size: 0.85rem;">
+                                                @b.TotalAmount.ToString("N0") đ
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Thành công
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DashboardOverviewDto _dashboard = new();
+    private bool _isLoading = true;
+    private int _chartPeriod = 0; // 0 = Ngày, 1 = Tuần, 2 = Tháng
+
+    private string _svgStrokePath = "";
+    private string _svgAreaPath = "";
+    private List<ChartPoint> _chartPoints = new();
+
+    private class ChartPoint
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public decimal Revenue { get; set; }
+        public string Label { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _dashboard = await ViewDashboardUseCase.ExecuteAsync();
+            BuildSvgChart();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SetChartPeriod(int period)
+    {
+        _chartPeriod = period;
+        BuildSvgChart();
+    }
+
+    private void BuildSvgChart()
+    {
+        _chartPoints.Clear();
+        var data = _dashboard.DailyRevenues;
+        if (data.Count == 0) return;
+
+        double width = 600;
+                double bottomY = 180;
+        double topY = 20;
+
+        decimal maxRev = data.Max(d => d.Revenue);
+        if (maxRev == 0) maxRev = 1000000m; // Fallback scale
+
+        double stepX = width / Math.Max(1, data.Count - 1);
+
+        for (int i = 0; i < data.Count; i++)
+        {
+            double x = i * stepX;
+            double norm = (double)(data[i].Revenue / maxRev);
+            if (_chartPeriod == 1) norm = Math.Min(1.0, norm * 1.3); // Giả lập tỷ lệ hiển thị tuần
+            if (_chartPeriod == 2) norm = Math.Min(1.0, norm * 1.6); // Giả lập tỷ lệ hiển thị tháng
+
+            double y = bottomY - (norm * (bottomY - topY));
+            // Add subtle wave curvature if 0
+            if (data[i].Revenue == 0)
+            {
+                y = bottomY - 15 - (Math.Sin(i * 1.2) * 10);
+            }
+
+            _chartPoints.Add(new ChartPoint
+            {
+                X = Math.Round(x, 1),
+                Y = Math.Round(y, 1),
+                Revenue = data[i].Revenue,
+                Label = data[i].DateLabel
+            });
+        }
+
+        // Build Smooth Bezier Path
+        if (_chartPoints.Count > 1)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"M {_chartPoints[0].X} {_chartPoints[0].Y}");
+
+            for (int i = 0; i < _chartPoints.Count - 1; i++)
+            {
+                var p0 = _chartPoints[i];
+                var p1 = _chartPoints[i + 1];
+                double cpX1 = p0.X + (p1.X - p0.X) / 2.0;
+                double cpY1 = p0.Y;
+                double cpX2 = p0.X + (p1.X - p0.X) / 2.0;
+                double cpY2 = p1.Y;
+                sb.Append($" C {cpX1} {cpY1}, {cpX2} {cpY2}, {p1.X} {p1.Y}");
+            }
+
+            _svgStrokePath = sb.ToString();
+            _svgAreaPath = $"{_svgStrokePath} L {_chartPoints.Last().X} 220 L {_chartPoints[0].X} 220 Z";
+        }
+    }
+
+    private string GetDonutSegmentPath(double cx, double cy, double r, double thickness, double startAngle, double sweepAngle)
+    {
+        double endAngle = startAngle + sweepAngle;
+        double rOuter = r + thickness;
+        double rInner = r;
+
+        double radStart = (Math.PI / 180.0) * (startAngle - 90);
+        double radEnd = (Math.PI / 180.0) * (endAngle - 90);
+
+        double x1 = cx + rOuter * Math.Cos(radStart);
+        double y1 = cy + rOuter * Math.Sin(radStart);
+        double x2 = cx + rOuter * Math.Cos(radEnd);
+        double y2 = cy + rOuter * Math.Sin(radEnd);
+
+        double x3 = cx + rInner * Math.Cos(radEnd);
+        double y3 = cy + rInner * Math.Sin(radEnd);
+        double x4 = cx + rInner * Math.Cos(radStart);
+        double y4 = cy + rInner * Math.Sin(radStart);
+
+        int largeArc = sweepAngle > 180 ? 1 : 0;
+
+        return $"M {x1:F1} {y1:F1} A {rOuter} {rOuter} 0 {largeArc} 1 {x2:F1} {y2:F1} L {x3:F1} {y3:F1} A {rInner} {rInner} 0 {largeArc} 0 {x4:F1} {y4:F1} Z";
+    }
+
+    private string GetOccupancyColor(double rate) => rate switch
+    {
+        >= 85 => "#ef4444",
+        >= 65 => "#f59e0b",
+        _ => "#10b981"
+    };
+
+    private string GetOccupancyGradient(double rate) => rate switch
+    {
+        >= 85 => "linear-gradient(90deg, #ea580c, #ef4444)",
+        >= 65 => "linear-gradient(90deg, #d97706, #f59e0b)",
+        _ => "linear-gradient(90deg, #059669, #10b981)"
+    };
+}
+<style>
+    .spin-animation {
+        animation: spin 1s linear infinite;
+    }
+    @@keyframes spin {
+        100% { transform: rotate(360deg); }
+    }
+</style>

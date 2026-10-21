@@ -38,6 +38,7 @@ builder.Services.AddScoped<ISeatRepository, SeatRepository>();
 builder.Services.AddScoped<IShowtimeRepository, ShowtimeRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 
 // 3. StateStore & Services
 builder.Services.AddSingleton<ISeatHoldingStateStore, SeatHoldingStateStore>();
@@ -58,6 +59,7 @@ builder.Services.AddTransient<ICreateBookingUseCase, CreateBookingUseCase>();
 builder.Services.AddTransient<IGetBookingDetailsUseCase, GetBookingDetailsUseCase>();
 builder.Services.AddTransient<IViewRecentBookingsUseCase, ViewRecentBookingsUseCase>();
 builder.Services.AddTransient<IViewOccupancyReportUseCase, ViewOccupancyReportUseCase>();
+builder.Services.AddTransient<IViewDashboardOverviewUseCase, ViewDashboardOverviewUseCase>();
 builder.Services.AddTransient<IRegisterUserUseCase, RegisterUserUseCase>();
 builder.Services.AddTransient<ILoginUserUseCase, LoginUserUseCase>();
 builder.Services.AddTransient<IViewMyBookingsUseCase, ViewMyBookingsUseCase>();
