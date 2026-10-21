@@ -88,10 +88,13 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         var activeMovies = (await _movieRepository.GetAllMoviesAsync(activeOnly: true)).ToList();
         var allShowtimes = (await _showtimeRepository.GetAllUpcomingShowtimesAsync()).ToList();
 
-        // Loc suat chieu: NEU LA HOM NAY thi chi lay cac suat chieu TRONG TUONG LAI (chua chieu)
+        // Loc suat chieu chuan gio Viet Nam (UTC+7)
+        var nowVn = VietnamTime.Now;
+        var todayVn = VietnamTime.Today;
         var upcomingShowtimes = allShowtimes
             .Where(s => s.StartTime.Date == targetDate.Date)
-            .Where(s => targetDate.Date > DateTime.Today || s.StartTime > DateTime.Now)
+            .Where(s => targetDate.Date > todayVn || s.StartTime > nowVn)
+            .OrderBy(s => s.StartTime)
             .ToList();
 
         if (!string.IsNullOrWhiteSpace(_effectiveApiKey))
@@ -162,6 +165,10 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         string apiKey,
         string modelName)
     {
+        var nowVn = VietnamTime.Now;
+        bool isToday = (targetDate.Date == nowVn.Date);
+        bool hasRemainingShowtimesToday = upcomingShowtimes.Any(s => s.StartTime > nowVn);
+
         var moviesSummary = string.Join("\n", movies.Select(m =>
         {
             var movieShowtimes = upcomingShowtimes
@@ -172,30 +179,42 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
                 .ToList();
 
             string showtimeListStr = movieShowtimes.Any()
-                ? string.Join(", ", movieShowtimes.Select(st => $"{st.StartTime:HH:mm} ({st.AuditoriumName ?? "Rạp"})"))
-                : "Hôm nay đã hết suất chiếu";
+                ? string.Join(", ", movieShowtimes.Select(st => $"{st.StartTime:HH:mm} ({st.AuditoriumName ?? "Phòng chiếu"})"))
+                : "Đã hết suất chiếu";
 
-            return $"[{m.MovieId}] {m.Title} | Thể loại: {m.Genre} | Đạo diễn: {m.Director} | Diễn viên: {m.Cast} | Độ tuổi: {m.AgeRating} | Suất chiếu thực tế hôm nay: {showtimeListStr}";
+            return $"[ID: {m.MovieId}] {m.Title} | Thể loại: {m.Genre} | Thời lượng: {m.DurationMinutes}p | Đạo diễn: {m.Director} | Diễn viên: {m.Cast} | Độ tuổi: {m.AgeRating} | Suất chiếu thực tế còn lại: {showtimeListStr} | Tóm tắt: {m.Description}";
         }));
 
+        var contextHeader =
+            $"THỜI GIAN HIỆN TẠI TẠI RẠP: {nowVn:HH:mm}, Ngày {nowVn:dd/MM/yyyy} (Giờ Việt Nam UTC+7).\n" +
+            (isToday
+                ? (hasRemainingShowtimesToday
+                    ? $"TÌNH TRẠNG RẠP HÔM NAY: Rạp đang mở cửa hoạt động, CÒN các suất chiếu sắp tới diễn ra sau {nowVn:HH:mm}."
+                    : $"TÌNH TRẠNG RẠP HÔM NAY: Hiện tại đã muộn ({nowVn:HH:mm}), TẤT CẢ các suất chiếu của ngày hôm nay ĐÃ KẾT THÚC. Rạp không còn bất kỳ suất chiếu nào diễn ra trong hôm nay nữa.")
+                : $"TÌNH TRẠNG: Khách đang hỏi thông tin ngày {targetDate:dd/MM/yyyy}.");
+
         var systemPrompt =
-            "Bạn là Trợ lý AI điện ảnh thông minh của rạp Starlight Cinema Huế (tương tự như ChatGPT phiên bản chuyên gia rạp phim).\n" +
-            "Dưới đây là danh sách phim và suất chiếu THỰC TẾ hôm nay tại rạp:\n" + moviesSummary + "\n\n" +
-            "Khách hàng hỏi: \"" + userQuery + "\"\n\n" +
-            "Quy tắc nghiệp vụ THỰC TẾ bắt buộc:\n" +
-            "1. Nếu khách hàng chỉ chào hỏi ('hello', 'chào', 'hi'), hỏi bạn là ai, hoặc trò chuyện chung/ngoài lề (thời tiết, ăn uống...):\n" +
-            "   - Hãy trả lời chào hỏi tự nhiên, lịch sự, thân thiện và khéo léo giới thiệu bạn là trợ lý rạp Starlight Cinema.\n" +
-            "   - Mục 'movies' PHẢI là mảng rỗng [] (TUYỆT ĐỐI KHÔNG tự tiện gắn phim vào khi khách chỉ chào hỏi!).\n" +
-            "2. Nếu khách hàng hỏi tìm phim (theo thể loại, diễn viên, tâm trạng, thời gian, suất muộn, suất sớm...):\n" +
-            "   - Chọn ĐÚNG các phim thực sự phù hợp từ danh sách trên.\n" +
-            "   - Viết câu trả lời 'reply' tự nhiên, chi tiết như một nhân viên tư vấn nhiệt tình của rạp (nhắc đến tên phim, suất chiếu).\n" +
-            "   - Mục 'movies' chứa danh sách các phim phù hợp với movieId, score (từ 60 đến 100), reason (lý do cụ thể vì sao phim này hợp với khách).\n" +
-            "3. TUYỆT ĐỐI KHÔNG bịa đặt phim hoặc suất chiếu không có trong danh sách trên.\n" +
-            "4. BẮT BUỘC chỉ trả về định dạng JSON thuần túy (không kèm Markdown code block thừa thãi), theo mẫu:\n" +
+            "Bạn là Starlight AI - Trợ lý điện ảnh thông minh, cực kỳ duyên dáng, tâm lý và am hiểu của rạp Starlight Cinema Huế.\n" +
+            "Bạn hiểu được MỌI kiểu giao tiếp của người Việt: nói tắt, viết tắt (k, j, z, s...), tiếng lóng (cuốn, dở, cháy, ổn áp, bánh cuốn...), hỏi tâm trạng, đùa vui, hay hỏi tư vấn cụ thể.\n\n" +
+            "=== NGỮ CẢNH THỜI GIAN THỰC ===\n" +
+            contextHeader + "\n\n" +
+            "=== DANH SÁCH PHIM & SUẤT CHIẾU THỰC TẾ TẠI RẠP ===\n" +
+            moviesSummary + "\n\n" +
+            "Khách hàng nhắn: \"" + userQuery + "\"\n\n" +
+            "=== QUY TẮC PHẢN HỒI THÔNG MINH, TỰ NHIÊN (KHÔNG MÁY MÓC) ===\n" +
+            "1. NẾU KHÁCH HỎI CÒN PHIM NÀO ĐANG CHIẾU / CÒN SUẤT NÀO KHÔNG / CHIẾU GÌ BÂY GIỜ:\n" +
+            "   - Nếu hiện tại rạp ĐÃ HẾT SUẤT CHIẾU HÔM NAY (như khi đã khuya): Hãy trả lời thật chân thành, tự nhiên và duyên dáng, thông báo rõ ràng là rạp đã kết thúc toàn bộ suất chiếu của ngày hôm nay, chúc khách ngủ ngon hoặc gợi ý khách xem lịch ngày mai. Mục 'movies' BẮT BUỘC LÀ MẢNG RỖNG [] (TUYỆT ĐỐI KHÔNG đính kèm thẻ phim vì khách đang hỏi tìm phim CÒN chiếu!).\n" +
+            "   - Nếu VẪN CÒN suất chiếu: Giới thiệu những phim THỰC SỰ CÒN SUẤT CHIẾU chưa diễn ra, kèm giờ chiếu cụ thể.\n\n" +
+            "2. NẾU KHÁCH TÌM PHIM (theo thể loại, diễn viên, tâm trạng buồn/vui, đi với người yêu, gia đình, phim kinh dị/hài hước...):\n" +
+            "   - Lắng nghe cảm xúc của khách, trò chuyện và tư vấn thật ngọt ngào, tinh tế như một người bạn sành phim.\n" +
+            "   - Chọn 1 đến 4 phim THỰC SỰ PHÙ HỢP NHẤT từ danh sách trên để đưa vào mục 'movies' kèm 'score' (70-99) và 'reason' (lý do cụ thể vì sao phim này hợp với khách).\n\n" +
+            "3. NẾU KHÁCH CHỈ CHÀO HỎI, NÓI CHUYỆN NGOÀI LỀ, ĐÙA VUI HOẶC HỎI BẠN LÀ AI:\n" +
+            "   - Trò chuyện tự nhiên, dí dỏm, thông minh và thân thiện. Mục 'movies' là [].\n\n" +
+            "4. ĐỊNH DẠNG TRẢ VỀ: BẮT BUỘC là JSON thuần túy (không bọc trong markdown ```json ``` thừa thãi):\n" +
             "{\n" +
-            "  \"reply\": \"Câu trả lời trò chuyện tự nhiên của AI...\",\n" +
+            "  \"reply\": \"Câu trả lời tự nhiên, tinh tế, dí dỏm của bạn dành cho khách...\",\n" +
             "  \"movies\": [\n" +
-            "    { \"movieId\": 1, \"score\": 95, \"reason\": \"Lý do phù hợp...\" }\n" +
+            "    { \"movieId\": 1, \"score\": 95, \"reason\": \"Lý do ngắn gọn vì sao phim này hợp với khách...\" }\n" +
             "  ]\n" +
             "}";
 
@@ -322,6 +341,21 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         TimeSpan timeFilterEnd,
         string timeReason)
     {
+        // 0. Kiem tra hoi con phim / con suat chieu khong khi da khuya het suat
+        bool isLookingForCurrentShowings = normalizedQuery.Contains("con phim") || normalizedQuery.Contains("dang chieu") ||
+                                           normalizedQuery.Contains("con suat") || normalizedQuery.Contains("chieu khong") ||
+                                           normalizedQuery.Contains("chieu k") || normalizedQuery.Contains("chieu j") ||
+                                           normalizedQuery.Contains("gio chieu");
+
+        if (isLookingForCurrentShowings && !upcomingShowtimes.Any(s => s.StartTime > VietnamTime.Now))
+        {
+            return new AiChatResponseDto
+            {
+                ReplyMessage = $"Chào bạn! Hiện tại đã khuya ({VietnamTime.Now:HH:mm}) và rạp Starlight Cinema Huế đã kết thúc toàn bộ suất chiếu của ngày hôm nay rồi ạ. Bạn vui lòng tham khảo lịch chiếu ngày mai hoặc quay lại vào ngày mai để đặt vé sớm nhé! Chúc bạn một buổi tối tốt lành!",
+                Recommendations = new List<AiMovieRecommendationDto>()
+            };
+        }
+
         // 1. Kiem tra chao hoi hoac tro chuyen chung chung
         bool isGreeting = normalizedQuery == "chao" || normalizedQuery.StartsWith("chao ") ||
                           normalizedQuery == "hello" || normalizedQuery == "hi" || normalizedQuery == "alo" ||
