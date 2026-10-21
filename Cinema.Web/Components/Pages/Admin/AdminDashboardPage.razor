@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject IViewDashboardOverviewUseCase ViewDashboardUseCase
 @inject NavigationManager Navigation
+@using System.Globalization
 
 <PageTitle>Tổng Quan Quản Trị - Starlight Cinema Huế</PageTitle>
 
@@ -172,7 +173,7 @@
                         </div>
                     </div>
 
-                    <!-- Glowing SVG Area Chart -->
+                    <!-- Glowing SVG Area Chart with Safe Invariant Coordinates -->
                     <div class="w-100 position-relative" style="height: 240px;">
                         <svg viewBox="0 0 600 220" class="w-100 h-100 overflow-visible" preserveAspectRatio="none">
                             <defs>
@@ -213,7 +214,7 @@
                             <!-- Interactive Points -->
                             @foreach (var pt in _chartPoints)
                             {
-                                <circle cx="@pt.X" cy="@pt.Y" r="5" fill="#ffffff" stroke="url(#neonGradientStroke)" stroke-width="3" style="cursor: pointer; transition: all 0.2s ease;">
+                                <circle cx="@Inv(pt.X)" cy="@Inv(pt.Y)" r="5.5" fill="#ffffff" stroke="url(#neonGradientStroke)" stroke-width="3" style="cursor: pointer; transition: all 0.2s ease;">
                                     <title>@($"{pt.Label} ({pt.Date}): {pt.Revenue:N0} đ - {pt.Tickets} vé")</title>
                                 </circle>
                             }
@@ -262,8 +263,8 @@
                                         <circle cx="80" cy="80" r="52" fill="none"
                                                 stroke="@movie.ColorHex"
                                                 stroke-width="22"
-                                                stroke-dasharray="@($"{dash:F2} {gap:F2}")"
-                                                stroke-dashoffset="@($"{(-offset):F2}")"
+                                                stroke-dasharray="@($"{Inv(dash)} {Inv(gap)}")"
+                                                stroke-dashoffset="@Inv(-offset)"
                                                 style="transition: all 0.6s ease;" />
                                         offset += dash;
                                     }
@@ -326,6 +327,7 @@
                         <div class="d-flex flex-column gap-3">
                             @foreach (var st in _dashboard.UpcomingShowtimes.Take(4))
                             {
+                                int occInt = (int)Math.Round(st.OccupancyPercent);
                                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center p-3 rounded-3 gap-2"
                                      style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
                                     <div class="d-flex align-items-center gap-3">
@@ -343,20 +345,18 @@
                                         </div>
                                     </div>
 
-                                    <!-- Mini Progress Bar Seat Status -->
-                                    <div class="d-flex flex-column align-items-sm-end gap-1" style="min-width: 170px;">
+                                    <!-- Mini Progress Bar Seat Status with Bright Glowing Bar & Safe CSS Width -->
+                                    <div class="d-flex flex-column align-items-sm-end gap-2" style="min-width: 170px;">
                                         <div class="d-flex align-items-center justify-content-between w-100 small">
-                                            <span style="font-size: 0.78rem; color: #94a3b8;">
+                                            <span style="font-size: 0.78rem; color: #cbd5e1;" class="fw-semibold">
                                                 @st.BookedSeats/@st.TotalSeats ghế
                                             </span>
-                                            <span class="fw-bold font-monospace" style="color: @GetOccupancyColor(st.OccupancyPercent); font-size: 0.8rem;">
-                                                @st.OccupancyPercent.ToString("F0")%
+                                            <span class="fw-bold font-monospace" style="color: @GetOccupancyColor(st.OccupancyPercent); font-size: 0.85rem;">
+                                                @occInt%
                                             </span>
                                         </div>
-                                        <div class="progress w-100" style="height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 99px;">
-                                            <div class="progress-bar" role="progressbar" 
-                                                 style="width: @(st.OccupancyPercent)%; background: @GetOccupancyGradient(st.OccupancyPercent); border-radius: 99px; box-shadow: 0 0 8px @GetOccupancyColor(st.OccupancyPercent);" 
-                                                 aria-valuenow="@st.OccupancyPercent" aria-valuemin="0" aria-valuemax="100">
+                                        <div class="w-100" style="height: 10px; background: rgba(255, 255, 255, 0.12); border-radius: 999px; overflow: hidden; padding: 1px;">
+                                            <div style="height: 100%; width: @(occInt)%; min-width: @(occInt > 0 ? "8px" : "0"); background: @GetOccupancyGradient(st.OccupancyPercent); border-radius: 999px; transition: width 0.6s ease; box-shadow: 0 0 10px @GetOccupancyColor(st.OccupancyPercent);">
                                             </div>
                                         </div>
                                     </div>
@@ -443,6 +443,8 @@
     private string _svgAreaPath = "";
     private List<ChartPoint> _chartPoints = new();
 
+    private static string Inv(double val) => val.ToString("0.##", CultureInfo.InvariantCulture);
+
     private class ChartPoint
     {
         public double X { get; set; }
@@ -492,19 +494,24 @@
         double bottomY = 190;
         double topY = 30;
 
+        decimal minRev = data.Min(d => d.Revenue);
         decimal maxRev = data.Max(d => d.Revenue);
-        if (maxRev <= 0) maxRev = 1000000m;
+        decimal diff = maxRev - minRev;
+        if (diff <= 0) diff = 1000000m;
 
         double stepX = width / Math.Max(1, data.Count - 1);
 
         for (int i = 0; i < data.Count; i++)
         {
             double x = i * stepX;
-            double norm = (double)(data[i].Revenue / maxRev);
-            if (_chartPeriod == 1) norm = Math.Min(1.0, norm * 1.25);
-            if (_chartPeriod == 2) norm = Math.Min(1.0, norm * 1.5);
+            // Normalized between 0.15 (bottom valley) and 0.88 (top peak)
+            double norm = (double)((data[i].Revenue - minRev) / diff);
+            double effectiveNorm = 0.15 + (norm * 0.73);
 
-            double y = bottomY - (norm * (bottomY - topY));
+            if (_chartPeriod == 1) effectiveNorm = Math.Min(0.95, effectiveNorm * 1.15);
+            if (_chartPeriod == 2) effectiveNorm = Math.Min(0.95, effectiveNorm * 1.25);
+
+            double y = bottomY - (effectiveNorm * (bottomY - topY));
             y = Math.Max(topY, Math.Min(bottomY, y));
 
             _chartPoints.Add(new ChartPoint
@@ -518,11 +525,11 @@
             });
         }
 
-        // Build Smooth Closed Bezier Curve
+        // Build Smooth Closed Bezier Curve with Invariant dot formatting
         if (_chartPoints.Count > 1)
         {
             var strokeSb = new System.Text.StringBuilder();
-            strokeSb.Append($"M {_chartPoints[0].X:F1} {_chartPoints[0].Y:F1}");
+            strokeSb.Append($"M {Inv(_chartPoints[0].X)} {Inv(_chartPoints[0].Y)}");
 
             for (int i = 0; i < _chartPoints.Count - 1; i++)
             {
@@ -532,14 +539,14 @@
                 double cpY1 = p0.Y;
                 double cpX2 = p0.X + (p1.X - p0.X) / 2.0;
                 double cpY2 = p1.Y;
-                strokeSb.Append($" C {cpX1:F1} {cpY1:F1}, {cpX2:F1} {cpY2:F1}, {p1.X:F1} {p1.Y:F1}");
+                strokeSb.Append($" C {Inv(cpX1)} {Inv(cpY1)}, {Inv(cpX2)} {Inv(cpY2)}, {Inv(p1.X)} {Inv(p1.Y)}");
             }
 
             _svgStrokePath = strokeSb.ToString();
 
             // Closed Polygon for Gradient Area
             var areaSb = new System.Text.StringBuilder();
-            areaSb.Append($"M {_chartPoints[0].X:F1} {bottomY:F1} L {_chartPoints[0].X:F1} {_chartPoints[0].Y:F1}");
+            areaSb.Append($"M {Inv(_chartPoints[0].X)} {Inv(bottomY)} L {Inv(_chartPoints[0].X)} {Inv(_chartPoints[0].Y)}");
             for (int i = 0; i < _chartPoints.Count - 1; i++)
             {
                 var p0 = _chartPoints[i];
@@ -548,24 +555,24 @@
                 double cpY1 = p0.Y;
                 double cpX2 = p0.X + (p1.X - p0.X) / 2.0;
                 double cpY2 = p1.Y;
-                areaSb.Append($" C {cpX1:F1} {cpY1:F1}, {cpX2:F1} {cpY2:F1}, {p1.X:F1} {p1.Y:F1}");
+                areaSb.Append($" C {Inv(cpX1)} {Inv(cpY1)}, {Inv(cpX2)} {Inv(cpY2)}, {Inv(p1.X)} {Inv(p1.Y)}");
             }
-            areaSb.Append($" L {_chartPoints.Last().X:F1} {bottomY:F1} Z");
+            areaSb.Append($" L {Inv(_chartPoints.Last().X)} {Inv(bottomY)} Z");
             _svgAreaPath = areaSb.ToString();
         }
     }
 
     private string GetOccupancyColor(double rate) => rate switch
     {
-        >= 85 => "#ef4444",
-        >= 65 => "#f59e0b",
+        >= 80 => "#ef4444",
+        >= 50 => "#f59e0b",
         _ => "#10b981"
     };
 
     private string GetOccupancyGradient(double rate) => rate switch
     {
-        >= 85 => "linear-gradient(90deg, #ea580c, #ef4444)",
-        >= 65 => "linear-gradient(90deg, #d97706, #f59e0b)",
+        >= 80 => "linear-gradient(90deg, #ea580c, #ef4444)",
+        >= 50 => "linear-gradient(90deg, #d97706, #f59e0b)",
         _ => "linear-gradient(90deg, #059669, #10b981)"
     };
 }

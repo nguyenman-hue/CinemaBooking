@@ -157,14 +157,23 @@ public class DashboardRepository : IDashboardRepository
         var startDate = today.AddDays(-6);
         const string dailySql = @"
             SELECT 
-                CAST(b.BookingTime AS DATE) AS BookingDate,
-                ISNULL(SUM(b.TotalAmount), 0) AS DailyRevenue,
-                COUNT(t.TicketId) AS DailyTickets
-            FROM dbo.Booking b
-            LEFT JOIN dbo.Ticket t ON b.BookingId = t.BookingId
-            WHERE b.BookingTime >= @StartDate AND b.BookingTime < @EndDate
-            GROUP BY CAST(b.BookingTime AS DATE)
-            ORDER BY BookingDate;";
+                b.BookingDate,
+                b.DailyRevenue,
+                ISNULL(t.DailyTickets, 0) AS DailyTickets
+            FROM (
+                SELECT CAST(BookingTime AS DATE) AS BookingDate, SUM(TotalAmount) AS DailyRevenue
+                FROM dbo.Booking
+                WHERE BookingTime >= @StartDate AND BookingTime < @EndDate
+                GROUP BY CAST(BookingTime AS DATE)
+            ) b
+            LEFT JOIN (
+                SELECT CAST(b2.BookingTime AS DATE) AS BookingDate, COUNT(tk.TicketId) AS DailyTickets
+                FROM dbo.Ticket tk
+                INNER JOIN dbo.Booking b2 ON tk.BookingId = b2.BookingId
+                WHERE b2.BookingTime >= @StartDate AND b2.BookingTime < @EndDate
+                GROUP BY CAST(b2.BookingTime AS DATE)
+            ) t ON b.BookingDate = t.BookingDate
+            ORDER BY b.BookingDate;";
 
         var dailyList = (await connection.QueryAsync<DailyRawRow>(dailySql, new { StartDate = startDate.Date, EndDate = today.AddDays(1).Date })).ToList();
         var dailyDict = dailyList.ToDictionary(d => d.BookingDate.Date, d => new { Revenue = d.DailyRevenue, Tickets = d.DailyTickets });
