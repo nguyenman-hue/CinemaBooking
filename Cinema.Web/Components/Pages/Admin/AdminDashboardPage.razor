@@ -154,77 +154,69 @@
 
         <!-- 2. Row Charts (Left: Area Line Chart, Right: Donut Chart) -->
         <div class="row g-3 mb-4">
-            <!-- Left Chart: Doanh Thu Theo Ngày (Luminous Neon Wave) -->
+            <!-- Left Chart: Doanh Thu Theo Ngày (Luminous Neon Wave, no redundant buttons) -->
             <div class="col-12 col-lg-7">
-                <div class="card p-4 h-100 border-0 shadow-sm"
+                <div class="card p-4 h-100 border-0 shadow-sm d-flex flex-column justify-content-between"
                      style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-                        <div>
-                            <h5 class="fw-bold text-white mb-0">Doanh Thu Theo Ngày</h5>
-                            <small style="color: #94a3b8;">Biểu đồ biến động doanh thu 7 ngày qua</small>
-                        </div>
-                        <div class="btn-group btn-group-sm p-1 rounded-pill" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
-                            <button class="btn btn-sm rounded-pill px-3 @(_chartPeriod == 0 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
-                                    @onclick="() => SetChartPeriod(0)">Theo ngày</button>
-                            <button class="btn btn-sm rounded-pill px-3 @(_chartPeriod == 1 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
-                                    @onclick="() => SetChartPeriod(1)">Tuần</button>
-                            <button class="btn btn-sm rounded-pill px-3 @(_chartPeriod == 2 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
-                                    @onclick="() => SetChartPeriod(2)">Tháng</button>
-                        </div>
+                    <div class="mb-3">
+                        <h5 class="fw-bold text-white mb-1">Doanh Thu Theo Ngày</h5>
+                        <small style="color: #94a3b8;">Biểu đồ biến động doanh thu 7 ngày qua</small>
                     </div>
 
-                    <!-- Glowing SVG Area Chart with Safe Invariant Coordinates -->
-                    <div class="w-100 position-relative" style="height: 240px;">
-                        <svg viewBox="0 0 600 220" class="w-100 h-100 overflow-visible" preserveAspectRatio="none">
-                            <defs>
-                                <linearGradient id="neonGradientArea" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="#ec4899" stop-opacity="0.45" />
-                                    <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.35" />
-                                    <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.45" />
-                                </linearGradient>
-                                <linearGradient id="neonGradientStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="#ec4899" />
-                                    <stop offset="50%" stop-color="#8b5cf6" />
-                                    <stop offset="100%" stop-color="#06b6d4" />
-                                </linearGradient>
-                                <filter id="glowWave" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feGaussianBlur stdDeviation="4" result="blur" />
-                                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                                </filter>
-                            </defs>
+                    <!-- Glowing SVG Area Chart Container with clean height -->
+                    <div class="w-100 my-auto">
+                        <div style="height: 180px;">
+                            <svg viewBox="0 0 600 170" class="w-100 h-100 overflow-visible" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="neonGradientArea" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#ec4899" stop-opacity="0.45" />
+                                        <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.35" />
+                                        <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.45" />
+                                    </linearGradient>
+                                    <linearGradient id="neonGradientStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#ec4899" />
+                                        <stop offset="50%" stop-color="#8b5cf6" />
+                                        <stop offset="100%" stop-color="#06b6d4" />
+                                    </linearGradient>
+                                    <filter id="glowWave" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feGaussianBlur stdDeviation="4" result="blur" />
+                                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                    </filter>
+                                </defs>
 
-                            <!-- Horizontal Grid lines -->
-                            <line x1="0" y1="40" x2="600" y2="40" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-                            <line x1="0" y1="90" x2="600" y2="90" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-                            <line x1="0" y1="140" x2="600" y2="140" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-                            <line x1="0" y1="190" x2="600" y2="190" stroke="rgba(255,255,255,0.08)" />
+                                <!-- Horizontal Grid lines -->
+                                <line x1="0" y1="30" x2="600" y2="30" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                                <line x1="0" y1="70" x2="600" y2="70" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                                <line x1="0" y1="110" x2="600" y2="110" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                                <line x1="0" y1="150" x2="600" y2="150" stroke="rgba(255,255,255,0.08)" />
 
-                            <!-- Smooth Bezier Area Fill -->
-                            @if (!string.IsNullOrEmpty(_svgAreaPath))
-                            {
-                                <path d="@_svgAreaPath" fill="url(#neonGradientArea)" />
-                            }
+                                <!-- Smooth Bezier Area Fill -->
+                                @if (!string.IsNullOrEmpty(_svgAreaPath))
+                                {
+                                    <path d="@_svgAreaPath" fill="url(#neonGradientArea)" />
+                                }
 
-                            <!-- Smooth Bezier Stroke Line with Glow -->
-                            @if (!string.IsNullOrEmpty(_svgStrokePath))
-                            {
-                                <path d="@_svgStrokePath" fill="none" stroke="url(#neonGradientStroke)" stroke-width="3.5" filter="url(#glowWave)" />
-                            }
+                                <!-- Smooth Bezier Stroke Line with Glow -->
+                                @if (!string.IsNullOrEmpty(_svgStrokePath))
+                                {
+                                    <path d="@_svgStrokePath" fill="none" stroke="url(#neonGradientStroke)" stroke-width="3.5" filter="url(#glowWave)" />
+                                }
 
-                            <!-- Interactive Points -->
-                            @foreach (var pt in _chartPoints)
-                            {
-                                <circle cx="@Inv(pt.X)" cy="@Inv(pt.Y)" r="5.5" fill="#ffffff" stroke="url(#neonGradientStroke)" stroke-width="3" style="cursor: pointer; transition: all 0.2s ease;">
-                                    <title>@($"{pt.Label} ({pt.Date}): {pt.Revenue:N0} đ - {pt.Tickets} vé")</title>
-                                </circle>
-                            }
-                        </svg>
+                                <!-- Interactive Points -->
+                                @foreach (var pt in _chartPoints)
+                                {
+                                    <circle cx="@Inv(pt.X)" cy="@Inv(pt.Y)" r="5.5" fill="#ffffff" stroke="url(#neonGradientStroke)" stroke-width="3" style="cursor: pointer; transition: all 0.2s ease;">
+                                        <title>@($"{pt.Label} ({pt.Date}): {pt.Revenue:N0} đ - {pt.Tickets} vé")</title>
+                                    </circle>
+                                }
+                            </svg>
+                        </div>
 
-                        <!-- X-Axis Labels -->
+                        <!-- X-Axis Labels: Perfectly aligned under each point -->
                         <div class="d-flex justify-content-between pt-2 px-1 text-muted small" style="font-size: 0.75rem;">
                             @foreach (var d in _dashboard.DailyRevenues)
                             {
-                                <div class="text-center">
+                                <div class="text-center" style="min-width: 45px;">
                                     <div class="fw-bold" style="color: #cbd5e1;">@d.DateLabel</div>
                                     <div style="font-size: 0.7rem; color: #64748b;">@d.FullDateStr</div>
                                 </div>
@@ -301,14 +293,14 @@
 
         <!-- 3. Row Tables (Left: Lịch Suất Chiếu Sắp Tới, Right: Đơn Đặt Vé Gần Đây) -->
         <div class="row g-3">
-            <!-- Left Table: Lịch Suất Chiếu Sắp Tới -->
+            <!-- Left Table: Lịch Suất Chiếu Sắp Tới (Chỉ hiển thị các suất chiếu TƯƠNG LAI) -->
             <div class="col-12 col-lg-6">
                 <div class="card p-4 h-100 border-0 shadow-sm"
                      style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
                         <div>
                             <h5 class="fw-bold text-white mb-0">Lịch Suất Chiếu Sắp Tới</h5>
-                            <small style="color: #94a3b8;">Theo dõi tỷ lệ lấp đầy ghế theo từng phòng chiếu</small>
+                            <small style="color: #94a3b8;">Các suất chiếu kế tiếp trong hôm nay và sắp tới</small>
                         </div>
                         <a href="/admin/showtimes" class="btn btn-sm btn-link text-warning text-decoration-none fw-semibold">
                             Tất cả <i class="bi bi-chevron-right small"></i>
@@ -318,8 +310,8 @@
                     @if (!_dashboard.UpcomingShowtimes.Any())
                     {
                         <div class="text-center py-4 text-muted small">
-                            <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
-                            Chưa có suất chiếu nào tiếp theo trong hôm nay.
+                            <i class="bi bi-calendar-check fs-3 d-block mb-2 text-warning"></i>
+                            Hiện tại không còn suất chiếu nào sắp tới trong ngày hôm nay.
                         </div>
                     }
                     else
@@ -437,7 +429,6 @@
 @code {
     private DashboardOverviewDto _dashboard = new();
     private bool _isLoading = true;
-    private int _chartPeriod = 0; // 0 = Ngày, 1 = Tuần, 2 = Tháng
 
     private string _svgStrokePath = "";
     private string _svgAreaPath = "";
@@ -478,12 +469,6 @@
         }
     }
 
-    private void SetChartPeriod(int period)
-    {
-        _chartPeriod = period;
-        BuildSvgChart();
-    }
-
     private void BuildSvgChart()
     {
         _chartPoints.Clear();
@@ -491,8 +476,8 @@
         if (data.Count == 0) return;
 
         double width = 600;
-        double bottomY = 190;
-        double topY = 30;
+        double bottomY = 150;
+        double topY = 25;
 
         decimal minRev = data.Min(d => d.Revenue);
         decimal maxRev = data.Max(d => d.Revenue);
@@ -507,9 +492,6 @@
             // Normalized between 0.15 (bottom valley) and 0.88 (top peak)
             double norm = (double)((data[i].Revenue - minRev) / diff);
             double effectiveNorm = 0.15 + (norm * 0.73);
-
-            if (_chartPeriod == 1) effectiveNorm = Math.Min(0.95, effectiveNorm * 1.15);
-            if (_chartPeriod == 2) effectiveNorm = Math.Min(0.95, effectiveNorm * 1.25);
 
             double y = bottomY - (effectiveNorm * (bottomY - topY));
             y = Math.Max(topY, Math.Min(bottomY, y));

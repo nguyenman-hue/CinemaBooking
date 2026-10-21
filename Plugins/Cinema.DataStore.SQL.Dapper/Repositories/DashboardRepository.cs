@@ -238,7 +238,7 @@ public class DashboardRepository : IDashboardRepository
         }
         dto.TopMovies = topMoviesList;
 
-        // 6. Lịch suất chiếu sắp tới
+        // 6. Lịch suất chiếu sắp tới (Chỉ lấy các suất trong tương lai tính từ thời điểm hiện tại)
         const string upcomingSql = @"
             SELECT TOP 6
                 s.ShowtimeId,
@@ -253,11 +253,11 @@ public class DashboardRepository : IDashboardRepository
             INNER JOIN dbo.Movie m ON s.MovieId = m.MovieId
             INNER JOIN dbo.Auditorium a ON s.AuditoriumId = a.AuditoriumId
             LEFT JOIN dbo.Ticket t ON s.ShowtimeId = t.ShowtimeId
-            WHERE s.IsActive = 1 AND s.StartTime >= DATEADD(HOUR, -2, @Today)
+            WHERE s.IsActive = 1 AND s.StartTime >= @Now
             GROUP BY s.ShowtimeId, m.Title, m.PosterUrl, s.StartTime, s.EndTime, a.Name, a.TotalSeats
             ORDER BY s.StartTime ASC;";
 
-        var upcomingResult = await connection.QueryAsync<UpcomingShowtimeDashboardDto>(upcomingSql, new { Today = today.Date });
+        var upcomingResult = await connection.QueryAsync<UpcomingShowtimeDashboardDto>(upcomingSql, new { Now = Cinema.CoreBusiness.Utilities.VietnamTime.Now });
         dto.UpcomingShowtimes = upcomingResult.ToList();
 
         // 7. Đơn đặt vé gần đây
