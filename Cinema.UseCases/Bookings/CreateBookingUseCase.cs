@@ -1,4 +1,5 @@
-﻿using Cinema.CoreBusiness.Models;
+﻿using Cinema.CoreBusiness.Utilities;
+using Cinema.CoreBusiness.Models;
 using Cinema.CoreBusiness.Rules;
 using Cinema.UseCases.PluginInterfaces.DataStore;
 using Cinema.UseCases.PluginInterfaces.Services;
@@ -44,7 +45,7 @@ public class CreateBookingUseCase : ICreateBookingUseCase
             throw new InvalidOperationException("Suất chiếu không tồn tại.");
 
         // Chặn đặt vé cho suất chiếu trong quá khứ / đã bắt đầu
-        if (showtime.StartTime <= DateTime.Now)
+        if (showtime.StartTime <= VietnamTime.Now)
             throw new InvalidOperationException($"Suất chiếu này đã bắt đầu ({showtime.StartTime:HH:mm dd/MM/yyyy}) hoặc đã kết thúc, không thể thực hiện đặt vé.");
 
         // 3. Áp dụng LUẬT 1: Tranh chấp ghế (Ghế đã bán hoặc đang bị người khác giữ)
@@ -62,7 +63,7 @@ public class CreateBookingUseCase : ICreateBookingUseCase
         // 5. Chuẩn bị line items (Ticket) và tính tổng tiền
         var tickets = new List<Ticket>();
         decimal totalAmount = 0;
-        string datePrefix = DateTime.Now.ToString("yyyyMMdd");
+        string datePrefix = VietnamTime.Now.ToString("yyyyMMdd");
         string randomSuffix = Guid.NewGuid().ToString("N")[..6].ToUpper();
         booking.BookingReference = $"BK-{datePrefix}-{randomSuffix}";
 

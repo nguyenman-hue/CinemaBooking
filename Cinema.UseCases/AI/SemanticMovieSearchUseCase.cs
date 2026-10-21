@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using Cinema.CoreBusiness.Utilities;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -561,9 +562,9 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
     {
         if (query.Contains("ngay mai") || query.Contains("hom sau"))
         {
-            return DateTime.Today.AddDays(1);
+            return VietnamTime.Today.AddDays(1);
         }
-        return DateTime.Today;
+        return VietnamTime.Today;
     }
 
     private string NormalizeText(string text)

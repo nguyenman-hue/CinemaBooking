@@ -72,7 +72,7 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold" style="color: #cbd5e1;">Thời Gian Bắt Đầu *</label>
-                        <input type="datetime-local" class="form-control form-control-sm" min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" 
+                        <input type="datetime-local" class="form-control form-control-sm" min="@VietnamTime.Now.ToString("yyyy-MM-ddTHH:mm")" 
                                value="@_startTimeString" 
                                @onchange="OnStartTimeChanged" required />
                         <small class="text-muted d-block mt-1">
@@ -196,11 +196,11 @@
     {
         MovieId = 0,
         AuditoriumId = 0,
-        StartTime = DateTime.Now.AddHours(2),
+        StartTime = VietnamTime.Now.AddHours(2),
         BasePrice = 85000
     };
 
-    private string _startTimeString = DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:00");
+    private string _startTimeString = VietnamTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:00");
 
     protected override async Task OnInitializedAsync()
     {

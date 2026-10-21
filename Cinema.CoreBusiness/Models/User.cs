@@ -1,4 +1,5 @@
-﻿namespace Cinema.CoreBusiness.Models;
+﻿using Cinema.CoreBusiness.Utilities;
+namespace Cinema.CoreBusiness.Models;
 
 public class User
 {
@@ -9,5 +10,5 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public string Role { get; set; } = "Customer"; // "Customer" hoặc "Admin"
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = VietnamTime.Now;
 }

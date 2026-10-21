@@ -69,11 +69,11 @@
         <div class="btn-group p-1 rounded-pill" style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.1);">
             <button class="btn btn-sm rounded-pill px-3 @(_selectedDateFilter == 0 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
                     @onclick="() => FilterByDate(0)">
-                Hôm Nay (@DateTime.Today.ToString("dd/MM"))
+                Hôm Nay (@VietnamTime.Today.ToString("dd/MM"))
             </button>
             <button class="btn btn-sm rounded-pill px-3 @(_selectedDateFilter == 1 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
                     @onclick="() => FilterByDate(1)">
-                Ngày Mai (@DateTime.Today.AddDays(1).ToString("dd/MM"))
+                Ngày Mai (@VietnamTime.Today.AddDays(1).ToString("dd/MM"))
             </button>
             <button class="btn btn-sm rounded-pill px-3 @(_selectedDateFilter == 2 ? "btn-warning fw-bold text-dark" : "btn-link text-white-50 text-decoration-none")"
                     @onclick="() => FilterByDate(2)">
@@ -215,7 +215,7 @@
                                         <div class="d-flex flex-wrap gap-2">
                                             @foreach (var st in movieShowtimes)
                                             {
-                                                if (st.StartTime <= DateTime.Now)
+                                                if (st.StartTime <= VietnamTime.Now)
                                                 {
                                                     <div class="showtime-pill is-past" title="@($"Suất chiếu đã bắt đầu lúc {st.StartTime:HH:mm} (Không thể đặt vé)")">
                                                         <span class="text-decoration-line-through">@st.StartTime.ToString("HH:mm")</span>
@@ -317,7 +317,7 @@
 
     private void HandleCardSelectMovie(Movie movie)
     {
-        var firstShowtime = _showtimes.FirstOrDefault(s => s.MovieId == movie.MovieId && s.StartTime > DateTime.Now);
+        var firstShowtime = _showtimes.FirstOrDefault(s => s.MovieId == movie.MovieId && s.StartTime > VietnamTime.Now);
         if (firstShowtime != null)
         {
             Navigation.NavigateTo($"/booking/{firstShowtime.ShowtimeId}");
@@ -357,7 +357,7 @@
             }
             else
             {
-                var targetDate = _selectedDateFilter == 0 ? DateTime.Today : DateTime.Today.AddDays(1);
+                var targetDate = _selectedDateFilter == 0 ? VietnamTime.Today : VietnamTime.Today.AddDays(1);
                 _showtimes = (await ViewShowtimesUseCase.ExecuteByDateAsync(targetDate)).ToList();
             }
         }

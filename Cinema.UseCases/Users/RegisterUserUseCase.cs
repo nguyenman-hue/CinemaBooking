@@ -1,4 +1,5 @@
-﻿using Cinema.CoreBusiness.Models;
+﻿using Cinema.CoreBusiness.Utilities;
+using Cinema.CoreBusiness.Models;
 using Cinema.UseCases.PluginInterfaces.DataStore;
 
 namespace Cinema.UseCases.Users;
@@ -51,7 +52,7 @@ public class RegisterUserUseCase : IRegisterUserUseCase
             Email = email,
             PhoneNumber = phone,
             Role = "Customer",
-            CreatedAt = DateTime.Now
+            CreatedAt = VietnamTime.Now
         };
 
         int newUserId = await _userRepo.CreateUserAsync(newUser, plainPassword);

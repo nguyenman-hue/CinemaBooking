@@ -276,7 +276,7 @@
     private void OpenPaymentModal()
     {
         _bookingError = null;
-        if (_showtime == null || _showtime.StartTime <= DateTime.Now)
+        if (_showtime == null || _showtime.StartTime <= VietnamTime.Now)
         {
             _bookingError = "Suất chiếu này đã diễn ra hoặc không tồn tại, không thể đặt vé!";
             return;
@@ -372,7 +372,7 @@
             if (_showtime != null)
             {
                 _bookingModel.ShowtimeId = ShowtimeId;
-                if (_showtime.StartTime <= DateTime.Now)
+                if (_showtime.StartTime <= VietnamTime.Now)
                 {
                     _isPastShowtime = true;
                 }
@@ -397,7 +397,7 @@
 
     private async Task HandleSubmitBooking()
     {
-        if (_showtime == null || _showtime.StartTime <= DateTime.Now)
+        if (_showtime == null || _showtime.StartTime <= VietnamTime.Now)
         {
             _bookingError = "Suất chiếu này đã diễn ra hoặc không tồn tại, không thể đặt vé!";
             return;

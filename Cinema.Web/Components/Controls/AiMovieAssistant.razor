@@ -124,11 +124,11 @@
                                         </div>
 
                                         <!-- Suất chiếu thực tế còn lại hôm nay -->
-                                        @if (rec.SuggestedShowtimes != null && rec.SuggestedShowtimes.Any(st => st.StartTime > DateTime.Now))
+                                        @if (rec.SuggestedShowtimes != null && rec.SuggestedShowtimes.Any(st => st.StartTime > VietnamTime.Now))
                                         {
                                             <div class="mt-2 pt-2 border-top border-white border-opacity-10 d-flex flex-wrap gap-1 align-items-center">
                                                 <small style="font-size: 0.68rem; color: #f59e0b;" class="fw-bold">Suất chiếu:</small>
-                                                @foreach (var st in rec.SuggestedShowtimes.Where(st => st.StartTime > DateTime.Now).Take(4))
+                                                @foreach (var st in rec.SuggestedShowtimes.Where(st => st.StartTime > VietnamTime.Now).Take(4))
                                                 {
                                                     <a href="/booking/@st.ShowtimeId" 
                                                        class="btn btn-sm btn-outline-warning py-0 px-2 rounded-pill fw-bold" 
@@ -197,7 +197,7 @@
     {
         public bool IsUser { get; set; }
         public string Text { get; set; } = "";
-        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public DateTime Timestamp { get; set; } = VietnamTime.Now;
         public List<AiMovieRecommendationDto>? Recommendations { get; set; }
     }
 
@@ -249,7 +249,7 @@
         {
             IsUser = true,
             Text = userText,
-            Timestamp = DateTime.Now
+            Timestamp = VietnamTime.Now
         });
 
         _isSearching = true;
@@ -266,7 +266,7 @@
                 IsUser = false,
                 Text = chatResult.ReplyMessage,
                 Recommendations = chatResult.Recommendations,
-                Timestamp = DateTime.Now
+                Timestamp = VietnamTime.Now
             });
         }
         catch (Exception)
@@ -275,7 +275,7 @@
             {
                 IsUser = false,
                 Text = "Dạ có chút gián đoạn kết nối, bạn thử gửi lại câu hỏi giúp em nhé!",
-                Timestamp = DateTime.Now
+                Timestamp = VietnamTime.Now
             });
         }
         finally

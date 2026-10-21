@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using Cinema.CoreBusiness.Utilities;
+using System.Data;
 using Cinema.CoreBusiness.Models;
 using Cinema.UseCases.PluginInterfaces.DataStore;
 using Dapper;
@@ -58,10 +59,10 @@ public class ShowtimeRepository : IShowtimeRepository
             FROM dbo.Showtime s
             INNER JOIN dbo.Movie m ON s.MovieId = m.MovieId
             INNER JOIN dbo.Auditorium a ON s.AuditoriumId = a.AuditoriumId
-            WHERE s.MovieId = @MovieId AND s.StartTime >= DATEADD(MINUTE, -30, GETDATE()) AND s.IsActive = 1
+            WHERE s.MovieId = @MovieId AND s.StartTime >= DATEADD(MINUTE, -30, @Now) AND s.IsActive = 1
             ORDER BY s.StartTime";
 
-        var result = await connection.QueryAsync<Showtime>(sql, new { MovieId = movieId });
+        var result = await connection.QueryAsync<Showtime>(sql, new { MovieId = movieId, Now = VietnamTime.Now });
         return result.ToList();
     }
 

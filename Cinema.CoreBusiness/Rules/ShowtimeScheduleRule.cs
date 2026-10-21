@@ -1,4 +1,5 @@
-﻿using Cinema.CoreBusiness.Exceptions;
+﻿using Cinema.CoreBusiness.Utilities;
+using Cinema.CoreBusiness.Exceptions;
 using Cinema.CoreBusiness.Models;
 
 namespace Cinema.CoreBusiness.Rules;
@@ -48,7 +49,7 @@ public static class ShowtimeScheduleRule
     /// </summary>
     public static void ValidateNotInPast(DateTime startTime, DateTime? referenceTime = null)
     {
-        var now = referenceTime ?? DateTime.Now;
+        var now = referenceTime ?? VietnamTime.Now;
         if (startTime < now)
         {
             throw new ShowtimeOverlapException(

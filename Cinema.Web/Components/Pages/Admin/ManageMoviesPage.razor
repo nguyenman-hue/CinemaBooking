@@ -249,12 +249,12 @@
         Genre = "Hành động, Phiêu lưu",
         DurationMinutes = 120,
         AgeRating = "T16",
-        ReleaseDate = DateTime.Today,
+        ReleaseDate = VietnamTime.Today,
         PosterUrl = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&auto=format&fit=crop&q=80",
         Description = ""
     };
 
-    private string _releaseDateString = DateTime.Today.ToString("yyyy-MM-dd");
+    private string _releaseDateString = VietnamTime.Today.ToString("yyyy-MM-dd");
 
     protected override async Task OnInitializedAsync()
     {
@@ -327,11 +327,11 @@
             Genre = "Hành động, Phiêu lưu",
             DurationMinutes = 120,
             AgeRating = "T16",
-            ReleaseDate = DateTime.Today,
+            ReleaseDate = VietnamTime.Today,
             PosterUrl = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&auto=format&fit=crop&q=80",
             Description = ""
         };
-        _releaseDateString = DateTime.Today.ToString("yyyy-MM-dd");
+        _releaseDateString = VietnamTime.Today.ToString("yyyy-MM-dd");
     }
 
     private async Task HandleSaveMovie()
