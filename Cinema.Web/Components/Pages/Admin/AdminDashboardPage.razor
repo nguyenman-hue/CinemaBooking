@@ -62,11 +62,11 @@
                     <div class="d-flex align-items-center gap-1 small">
                         @if (_dashboard.RevenueGrowthPercent >= 0)
                         {
-                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.RevenueGrowthPercent%</span>
+                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.RevenueGrowthPercent.ToString("F0")%</span>
                         }
                         else
                         {
-                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.RevenueGrowthPercent%</span>
+                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.RevenueGrowthPercent.ToString("F0")%</span>
                         }
                         <span style="color: #64748b;">so với hôm qua</span>
                     </div>
@@ -90,11 +90,11 @@
                     <div class="d-flex align-items-center gap-1 small">
                         @if (_dashboard.TicketGrowthPercent >= 0)
                         {
-                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.TicketGrowthPercent%</span>
+                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.TicketGrowthPercent.ToString("F0")%</span>
                         }
                         else
                         {
-                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.TicketGrowthPercent%</span>
+                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.TicketGrowthPercent.ToString("F0")%</span>
                         }
                         <span style="color: #64748b;">so với hôm qua</span>
                     </div>
@@ -139,11 +139,11 @@
                     <div class="d-flex align-items-center gap-1 small">
                         @if (_dashboard.OccupancyGrowthPercent >= 0)
                         {
-                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.OccupancyGrowthPercent%</span>
+                            <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.OccupancyGrowthPercent.ToString("F1")%</span>
                         }
                         else
                         {
-                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.OccupancyGrowthPercent%</span>
+                            <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.OccupancyGrowthPercent.ToString("F1")%</span>
                         }
                         <span style="color: #64748b;">so với hôm qua</span>
                     </div>
@@ -177,9 +177,9 @@
                         <svg viewBox="0 0 600 220" class="w-100 h-100 overflow-visible" preserveAspectRatio="none">
                             <defs>
                                 <linearGradient id="neonGradientArea" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="#ec4899" stop-opacity="0.4" />
+                                    <stop offset="0%" stop-color="#ec4899" stop-opacity="0.45" />
                                     <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.35" />
-                                    <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.4" />
+                                    <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.45" />
                                 </linearGradient>
                                 <linearGradient id="neonGradientStroke" x1="0%" y1="0%" x2="100%" y2="0%">
                                     <stop offset="0%" stop-color="#ec4899" />
@@ -193,22 +193,28 @@
                             </defs>
 
                             <!-- Horizontal Grid lines -->
-                            <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-                            <line x1="0" y1="110" x2="600" y2="110" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
-                            <line x1="0" y1="170" x2="600" y2="170" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                            <line x1="0" y1="40" x2="600" y2="40" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                            <line x1="0" y1="90" x2="600" y2="90" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                            <line x1="0" y1="140" x2="600" y2="140" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4" />
+                            <line x1="0" y1="190" x2="600" y2="190" stroke="rgba(255,255,255,0.08)" />
 
                             <!-- Smooth Bezier Area Fill -->
-                            <path d="@_svgAreaPath" fill="url(#neonGradientArea)" />
+                            @if (!string.IsNullOrEmpty(_svgAreaPath))
+                            {
+                                <path d="@_svgAreaPath" fill="url(#neonGradientArea)" />
+                            }
 
                             <!-- Smooth Bezier Stroke Line with Glow -->
-                            <path d="@_svgStrokePath" fill="none" stroke="url(#neonGradientStroke)" stroke-width="3.5" filter="url(#glowWave)" />
+                            @if (!string.IsNullOrEmpty(_svgStrokePath))
+                            {
+                                <path d="@_svgStrokePath" fill="none" stroke="url(#neonGradientStroke)" stroke-width="3.5" filter="url(#glowWave)" />
+                            }
 
                             <!-- Interactive Points -->
-                            @for (int i = 0; i < _chartPoints.Count; i++)
+                            @foreach (var pt in _chartPoints)
                             {
-                                var pt = _chartPoints[i];
-                                <circle cx="@pt.X" cy="@pt.Y" r="5" fill="#ffffff" stroke="url(#neonGradientStroke)" stroke-width="3" style="cursor: pointer; transition: r 0.2s ease;">
-                                    <title>@($"{pt.Label}: {pt.Revenue:N0} đ")</title>
+                                <circle cx="@pt.X" cy="@pt.Y" r="5" fill="#ffffff" stroke="url(#neonGradientStroke)" stroke-width="3" style="cursor: pointer; transition: all 0.2s ease;">
+                                    <title>@($"{pt.Label} ({pt.Date}): {pt.Revenue:N0} đ - {pt.Tickets} vé")</title>
                                 </circle>
                             }
                         </svg>
@@ -237,21 +243,29 @@
                     </div>
 
                     <div class="row align-items-center g-3 my-auto">
-                        <!-- Donut Graphic -->
+                        <!-- Donut Graphic (Bulletproof SVG Circles with stroke-dasharray) -->
                         <div class="col-sm-5 text-center position-relative">
-                            <svg viewBox="0 0 160 160" style="width: 150px; height: 150px;" class="mx-auto transform-rotate">
+                            <svg viewBox="0 0 160 160" style="width: 155px; height: 155px; transform: rotate(-90deg);" class="mx-auto">
                                 @{
-                                    double accumulatedAngle = 0;
-                                    double cx = 80, cy = 80, r = 55;
+                                    const double circumference = 326.726; // 2 * PI * 52
+                                    double offset = 0;
                                 }
+                                <!-- Background Track -->
+                                <circle cx="80" cy="80" r="52" fill="none" stroke="rgba(255, 255, 255, 0.05)" stroke-width="22" />
+
                                 @foreach (var movie in _dashboard.TopMovies)
                                 {
-                                    double sweep = (movie.Percentage / 100.0) * 360.0;
-                                    if (sweep > 0)
+                                    double dash = (movie.Percentage / 100.0) * circumference;
+                                    double gap = Math.Max(0, circumference - dash);
+                                    if (dash > 0)
                                     {
-                                        string pathData = GetDonutSegmentPath(cx, cy, r, 20, accumulatedAngle, sweep);
-                                        <path d="@pathData" fill="@movie.ColorHex" style="transition: opacity 0.2s;" />
-                                        accumulatedAngle += sweep;
+                                        <circle cx="80" cy="80" r="52" fill="none"
+                                                stroke="@movie.ColorHex"
+                                                stroke-width="22"
+                                                stroke-dasharray="@($"{dash:F2} {gap:F2}")"
+                                                stroke-dashoffset="@($"{(-offset):F2}")"
+                                                style="transition: all 0.6s ease;" />
+                                        offset += dash;
                                     }
                                 }
                             </svg>
@@ -265,7 +279,7 @@
                         <!-- Legend Items -->
                         <div class="col-sm-7">
                             <div class="d-flex flex-column gap-2">
-                                @foreach (var m in _dashboard.TopMovies.Take(4))
+                                @foreach (var m in _dashboard.TopMovies.Take(5))
                                 {
                                     <div class="d-flex align-items-center justify-content-between p-2 rounded-3"
                                          style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);">
@@ -434,7 +448,9 @@
         public double X { get; set; }
         public double Y { get; set; }
         public decimal Revenue { get; set; }
+        public int Tickets { get; set; }
         public string Label { get; set; } = "";
+        public string Date { get; set; } = "";
     }
 
     protected override async Task OnInitializedAsync()
@@ -473,11 +489,11 @@
         if (data.Count == 0) return;
 
         double width = 600;
-                double bottomY = 180;
-        double topY = 20;
+        double bottomY = 190;
+        double topY = 30;
 
         decimal maxRev = data.Max(d => d.Revenue);
-        if (maxRev == 0) maxRev = 1000000m; // Fallback scale
+        if (maxRev <= 0) maxRev = 1000000m;
 
         double stepX = width / Math.Max(1, data.Count - 1);
 
@@ -485,30 +501,28 @@
         {
             double x = i * stepX;
             double norm = (double)(data[i].Revenue / maxRev);
-            if (_chartPeriod == 1) norm = Math.Min(1.0, norm * 1.3); // Giả lập tỷ lệ hiển thị tuần
-            if (_chartPeriod == 2) norm = Math.Min(1.0, norm * 1.6); // Giả lập tỷ lệ hiển thị tháng
+            if (_chartPeriod == 1) norm = Math.Min(1.0, norm * 1.25);
+            if (_chartPeriod == 2) norm = Math.Min(1.0, norm * 1.5);
 
             double y = bottomY - (norm * (bottomY - topY));
-            // Add subtle wave curvature if 0
-            if (data[i].Revenue == 0)
-            {
-                y = bottomY - 15 - (Math.Sin(i * 1.2) * 10);
-            }
+            y = Math.Max(topY, Math.Min(bottomY, y));
 
             _chartPoints.Add(new ChartPoint
             {
                 X = Math.Round(x, 1),
                 Y = Math.Round(y, 1),
                 Revenue = data[i].Revenue,
-                Label = data[i].DateLabel
+                Tickets = data[i].Tickets,
+                Label = data[i].DateLabel,
+                Date = data[i].FullDateStr
             });
         }
 
-        // Build Smooth Bezier Path
+        // Build Smooth Closed Bezier Curve
         if (_chartPoints.Count > 1)
         {
-            var sb = new System.Text.StringBuilder();
-            sb.Append($"M {_chartPoints[0].X} {_chartPoints[0].Y}");
+            var strokeSb = new System.Text.StringBuilder();
+            strokeSb.Append($"M {_chartPoints[0].X:F1} {_chartPoints[0].Y:F1}");
 
             for (int i = 0; i < _chartPoints.Count - 1; i++)
             {
@@ -518,36 +532,27 @@
                 double cpY1 = p0.Y;
                 double cpX2 = p0.X + (p1.X - p0.X) / 2.0;
                 double cpY2 = p1.Y;
-                sb.Append($" C {cpX1} {cpY1}, {cpX2} {cpY2}, {p1.X} {p1.Y}");
+                strokeSb.Append($" C {cpX1:F1} {cpY1:F1}, {cpX2:F1} {cpY2:F1}, {p1.X:F1} {p1.Y:F1}");
             }
 
-            _svgStrokePath = sb.ToString();
-            _svgAreaPath = $"{_svgStrokePath} L {_chartPoints.Last().X} 220 L {_chartPoints[0].X} 220 Z";
+            _svgStrokePath = strokeSb.ToString();
+
+            // Closed Polygon for Gradient Area
+            var areaSb = new System.Text.StringBuilder();
+            areaSb.Append($"M {_chartPoints[0].X:F1} {bottomY:F1} L {_chartPoints[0].X:F1} {_chartPoints[0].Y:F1}");
+            for (int i = 0; i < _chartPoints.Count - 1; i++)
+            {
+                var p0 = _chartPoints[i];
+                var p1 = _chartPoints[i + 1];
+                double cpX1 = p0.X + (p1.X - p0.X) / 2.0;
+                double cpY1 = p0.Y;
+                double cpX2 = p0.X + (p1.X - p0.X) / 2.0;
+                double cpY2 = p1.Y;
+                areaSb.Append($" C {cpX1:F1} {cpY1:F1}, {cpX2:F1} {cpY2:F1}, {p1.X:F1} {p1.Y:F1}");
+            }
+            areaSb.Append($" L {_chartPoints.Last().X:F1} {bottomY:F1} Z");
+            _svgAreaPath = areaSb.ToString();
         }
-    }
-
-    private string GetDonutSegmentPath(double cx, double cy, double r, double thickness, double startAngle, double sweepAngle)
-    {
-        double endAngle = startAngle + sweepAngle;
-        double rOuter = r + thickness;
-        double rInner = r;
-
-        double radStart = (Math.PI / 180.0) * (startAngle - 90);
-        double radEnd = (Math.PI / 180.0) * (endAngle - 90);
-
-        double x1 = cx + rOuter * Math.Cos(radStart);
-        double y1 = cy + rOuter * Math.Sin(radStart);
-        double x2 = cx + rOuter * Math.Cos(radEnd);
-        double y2 = cy + rOuter * Math.Sin(radEnd);
-
-        double x3 = cx + rInner * Math.Cos(radEnd);
-        double y3 = cy + rInner * Math.Sin(radEnd);
-        double x4 = cx + rInner * Math.Cos(radStart);
-        double y4 = cy + rInner * Math.Sin(radStart);
-
-        int largeArc = sweepAngle > 180 ? 1 : 0;
-
-        return $"M {x1:F1} {y1:F1} A {rOuter} {rOuter} 0 {largeArc} 1 {x2:F1} {y2:F1} L {x3:F1} {y3:F1} A {rInner} {rInner} 0 {largeArc} 0 {x4:F1} {y4:F1} Z";
     }
 
     private string GetOccupancyColor(double rate) => rate switch
