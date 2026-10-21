@@ -130,9 +130,7 @@
             await JSRuntime.InvokeVoidAsync("clearCinemaSession");
         }
         catch { }
-        // 1. Đăng xuất bình thường
-        await AuthStateProvider.LogoutAsync();
-        // 2. Về Trang Chủ
-        Navigation.NavigateTo("/");
+        // Đăng xuất xóa Cookie chuẩn ASP.NET Core và chuyển về Trang Chủ
+        Navigation.NavigateTo("/logout", forceLoad: true);
     }
 }

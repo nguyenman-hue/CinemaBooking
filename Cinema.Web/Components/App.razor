@@ -39,6 +39,22 @@
             }
         };
 
+        window.cinemaAuthLogin = async function (username, password, returnUrl) {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ username: username, password: password, returnUrl: returnUrl })
+                });
+                return await response.json();
+            } catch (e) {
+                return { success: false, message: e.message || 'Lỗi kết nối máy chủ.' };
+            }
+        };
+
         window.clearCinemaSession = function () {
             try {
                 sessionStorage.removeItem('Cinema_TabSessionId');

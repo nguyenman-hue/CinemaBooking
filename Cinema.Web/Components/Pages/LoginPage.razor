@@ -1,6 +1,7 @@
 ﻿@page "/login"
 @inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Đăng Nhập Tài Khoản - Starlight Cinema Huế</PageTitle>
 
@@ -148,48 +149,20 @@
 
         try
         {
-            var user = await AuthStateProvider.LoginAsync(_username, _password);
-            if (user != null)
+            var res = await JSRuntime.InvokeAsync<LoginResponse>("cinemaAuthLogin", _username, _password, ReturnUrl);
+            if (res != null && res.Success)
             {
-                if (user.Role == "Admin")
-                {
-                    if (!string.IsNullOrWhiteSpace(ReturnUrl))
-                    {
-                        var decoded = System.Net.WebUtility.UrlDecode(ReturnUrl);
-                        if (decoded.StartsWith("/"))
-                        {
-                            Navigation.NavigateTo(decoded);
-                            return;
-                        }
-                    }
-                    Navigation.NavigateTo("/admin/showtimes");
-                }
-                else
-                {
-                    // Tài khoản khách hàng nếu có ReturnUrl không phải admin thì đi tiếp
-                    if (!string.IsNullOrWhiteSpace(ReturnUrl) && !IsAdminRedirect)
-                    {
-                        var decoded = System.Net.WebUtility.UrlDecode(ReturnUrl);
-                        if (decoded.StartsWith("/"))
-                        {
-                            Navigation.NavigateTo(decoded);
-                            return;
-                        }
-                    }
-                    Navigation.NavigateTo("/my-bookings");
-                }
+                Navigation.NavigateTo(res.RedirectUrl ?? "/", forceLoad: true);
             }
             else
             {
-                _errorMessage = "Tên đăng nhập / Email hoặc mật khẩu không chính xác.";
+                _errorMessage = res?.Message ?? "Tên đăng nhập / Email hoặc mật khẩu không chính xác.";
+                _isSubmitting = false;
             }
         }
         catch (Exception ex)
         {
             _errorMessage = $"Lỗi đăng nhập: {ex.Message}";
-        }
-        finally
-        {
             _isSubmitting = false;
         }
     }
