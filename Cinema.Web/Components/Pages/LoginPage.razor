@@ -19,6 +19,22 @@
                     </p>
                 </div>
 
+                @* Cảnh báo nổi bật khi bị chặn từ khu vực Admin *@
+                @if (IsAdminRedirect)
+                {
+                    <div class="alert border border-warning border-opacity-50 text-light py-3 px-3 mb-4 rounded-3 d-flex align-items-start gap-3 shadow" style="background: rgba(245, 158, 11, 0.12); border-left: 4px solid #f59e0b !important;">
+                        <i class="bi bi-shield-exclamation text-warning fs-3 flex-shrink-0 mt-1"></i>
+                        <div>
+                            <div class="fw-bold text-warning mb-1" style="font-size: 1rem;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Khu Vực Quản Trị Viên (Admin)
+                            </div>
+                            <div class="small text-white-50 leading-relaxed">
+                                Bạn vừa cố gắng truy cập trang Quản trị hệ thống (<code class="text-warning">@DisplayReturnUrl</code>). Khu vực này được bảo vệ, vui lòng đăng nhập bằng <strong>tài khoản Quản Trị Viên</strong> để tiếp tục!
+                            </div>
+                        </div>
+                    </div>
+                }
+
                 @if (!string.IsNullOrEmpty(_errorMessage))
                 {
                     <div class="alert alert-danger small py-2 mb-3">
@@ -84,10 +100,32 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
     private string _username = "";
     private string _password = "";
     private bool _isSubmitting = false;
     private string? _errorMessage;
+
+    private bool IsAdminRedirect
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(ReturnUrl)) return false;
+            var decoded = System.Net.WebUtility.UrlDecode(ReturnUrl);
+            return decoded.Contains("/admin", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private string DisplayReturnUrl
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(ReturnUrl)) return "/admin";
+            return System.Net.WebUtility.UrlDecode(ReturnUrl);
+        }
+    }
 
     private void AutoFillAdmin()
     {
@@ -115,10 +153,29 @@
             {
                 if (user.Role == "Admin")
                 {
+                    if (!string.IsNullOrWhiteSpace(ReturnUrl))
+                    {
+                        var decoded = System.Net.WebUtility.UrlDecode(ReturnUrl);
+                        if (decoded.StartsWith("/"))
+                        {
+                            Navigation.NavigateTo(decoded);
+                            return;
+                        }
+                    }
                     Navigation.NavigateTo("/admin/showtimes");
                 }
                 else
                 {
+                    // Tài khoản khách hàng nếu có ReturnUrl không phải admin thì đi tiếp
+                    if (!string.IsNullOrWhiteSpace(ReturnUrl) && !IsAdminRedirect)
+                    {
+                        var decoded = System.Net.WebUtility.UrlDecode(ReturnUrl);
+                        if (decoded.StartsWith("/"))
+                        {
+                            Navigation.NavigateTo(decoded);
+                            return;
+                        }
+                    }
                     Navigation.NavigateTo("/my-bookings");
                 }
             }

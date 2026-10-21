@@ -4,26 +4,33 @@
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
                 <NotAuthorized>
                     <div class="container py-5 text-center">
-                        <div class="card shadow-sm border-0 mx-auto" style="max-width: 500px; border-radius: 16px;">
-                            <div class="card-body p-4 p-md-5">
-                                <div class="text-danger mb-3" style="font-size: 3rem;">
-                                    🔒
+                        <div class="card p-4 p-md-5 shadow-lg mx-auto" style="max-width: 540px; border-radius: 16px; background: #111827; border: 1px solid rgba(239, 68, 68, 0.35);">
+                            <div class="card-body">
+                                <div class="text-danger mb-3" style="font-size: 3.5rem;">
+                                    <i class="bi bi-shield-slash-fill"></i>
                                 </div>
-                                <h3 class="fw-bold">Yêu Cầu Quyền Quản Trị</h3>
-                                <p class="text-muted">Bạn cần đăng nhập tài khoản Quản trị viên để truy cập trang chức năng này.</p>
-                                <a href="/login" class="btn btn-primary px-4 py-2 mt-2" style="border-radius: 10px;">
-                                    Đăng Nhập Quản Trị Viên
-                                </a>
+                                <h3 class="fw-bold text-white mb-2">403 - Quyền Truy Cập Bị Từ Chối</h3>
+                                <p class="text-white-50 mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+                                    Khu vực này yêu cầu đặc quyền <strong class="text-warning">Quản Trị Viên (Admin)</strong>. Tài khoản hiện tại của bạn không được cấp phép truy cập vào trang này.
+                                </p>
+                                <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+                                    <a href="/" class="btn btn-cinema-gold px-4 py-2 fw-bold" style="border-radius: 8px;">
+                                        <i class="bi bi-house-door-fill me-2"></i>Trang Chủ
+                                    </a>
+                                    <a href="/login?ReturnUrl=%2Fadmin" class="btn btn-outline-warning px-4 py-2" style="border-radius: 8px;">
+                                        <i class="bi bi-shield-lock me-2"></i>Đăng Nhập Tài Khoản Admin
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </NotAuthorized>
                 <Authorizing>
                     <div class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
+                        <div class="spinner-border text-warning" role="status">
                             <span class="visually-hidden">Đang tải...</span>
                         </div>
-                        <p class="text-muted mt-2">Đang xác thực thông tin...</p>
+                        <p class="text-white-50 mt-2">Đang xác thực thông tin...</p>
                     </div>
                 </Authorizing>
             </AuthorizeRouteView>
@@ -32,9 +39,14 @@
         <NotFound>
             <LayoutView Layout="typeof(Layout.MainLayout)">
                 <div class="container py-5 text-center">
-                    <h1 class="display-4 fw-bold text-muted">404</h1>
-                    <p class="lead">Trang bạn tìm kiếm không tồn tại hoặc đã bị di dời.</p>
-                    <a href="/" class="btn btn-primary">Trở về Trang Chủ</a>
+                    <div class="card p-4 p-md-5 shadow-lg mx-auto" style="max-width: 540px; border-radius: 16px; background: #111827; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <h1 class="display-3 fw-bold text-warning mb-2">404</h1>
+                        <h4 class="fw-bold text-white mb-2">Không Tìm Thấy Trang</h4>
+                        <p class="text-white-50 mb-4">Trang bạn tìm kiếm không tồn tại hoặc đã bị di dời.</p>
+                        <a href="/" class="btn btn-cinema-gold px-4 py-2 fw-bold" style="border-radius: 8px;">
+                            <i class="bi bi-house-door-fill me-2"></i>Trở Về Trang Chủ
+                        </a>
+                    </div>
                 </div>
             </LayoutView>
         </NotFound>

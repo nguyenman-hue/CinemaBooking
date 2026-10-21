@@ -1,4 +1,4 @@
-﻿using Cinema.DataStore.SQL.Dapper;
+﻿﻿using Cinema.DataStore.SQL.Dapper;
 using Cinema.DataStore.SQL.Dapper.Repositories;
 using Cinema.StateStore.DI;
 using Cinema.UseCases.AI;
@@ -80,6 +80,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.Cookie.Name = "CinemaAuthCookie";
         options.LoginPath = "/login";
+        options.AccessDeniedPath = "/access-denied";
         options.LogoutPath = "/logout";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
