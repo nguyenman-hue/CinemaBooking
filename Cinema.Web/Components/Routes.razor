@@ -3,27 +3,39 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
                 <NotAuthorized>
-                    <div class="container py-5 text-center">
-                        <div class="card p-4 p-md-5 shadow-lg mx-auto" style="max-width: 540px; border-radius: 16px; background: #111827; border: 1px solid rgba(239, 68, 68, 0.35);">
-                            <div class="card-body">
-                                <div class="text-danger mb-3" style="font-size: 3.5rem;">
-                                    <i class="bi bi-shield-slash-fill"></i>
-                                </div>
-                                <h3 class="fw-bold text-white mb-2">403 - Quyền Truy Cập Bị Từ Chối</h3>
-                                <p class="text-white-50 mb-4" style="font-size: 0.95rem; line-height: 1.6;">
-                                    Khu vực này yêu cầu đặc quyền <strong class="text-warning">Quản Trị Viên (Admin)</strong>. Tài khoản hiện tại của bạn không được cấp phép truy cập vào trang này.
-                                </p>
-                                <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
-                                    <a href="/" class="btn btn-cinema-gold px-4 py-2 fw-bold" style="border-radius: 8px;">
-                                        <i class="bi bi-house-door-fill me-2"></i>Trang Chủ
-                                    </a>
-                                    <a href="/login?ReturnUrl=%2Fadmin" class="btn btn-outline-warning px-4 py-2" style="border-radius: 8px;">
-                                        <i class="bi bi-shield-lock me-2"></i>Đăng Nhập Tài Khoản Admin
-                                    </a>
+                    @if (context.User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="container py-5 text-center">
+                            <div class="card p-4 p-md-5 shadow-lg mx-auto" style="max-width: 540px; border-radius: 16px; background: #111827; border: 1px solid rgba(239, 68, 68, 0.35);">
+                                <div class="card-body">
+                                    <div class="text-danger mb-3" style="font-size: 3.5rem;">
+                                        <i class="bi bi-shield-slash-fill"></i>
+                                    </div>
+                                    <h3 class="fw-bold text-white mb-2">403 - Quyền Truy Cập Bị Từ Chối</h3>
+                                    <p class="text-white-50 mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+                                        Khu vực này yêu cầu đặc quyền <strong class="text-warning">Quản Trị Viên (Admin)</strong>. Tài khoản hiện tại của bạn không được cấp phép truy cập vào trang này.
+                                    </p>
+                                    <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+                                        <a href="/" class="btn btn-cinema-gold px-4 py-2 fw-bold" style="border-radius: 8px;">
+                                            <i class="bi bi-house-door-fill me-2"></i>Trang Chủ
+                                        </a>
+                                        <a href="/login?ReturnUrl=%2Fadmin" class="btn btn-outline-warning px-4 py-2" style="border-radius: 8px;">
+                                            <i class="bi bi-shield-lock me-2"></i>Đăng Nhập Tài Khoản Admin
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Đang chuyển hướng...</span>
+                            </div>
+                            <p class="text-white-50 mt-2">Đang chuyển về trang chủ...</p>
+                        </div>
+                    }
                 </NotAuthorized>
                 <Authorizing>
                     <div class="text-center py-5">
