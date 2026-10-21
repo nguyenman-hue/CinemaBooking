@@ -190,7 +190,7 @@ app.MapPost("/api/auth/login", async (HttpContext context, IUserRepository userR
 
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
-        string target = user.Role == "Admin" ? "/admin/showtimes" : "/my-bookings";
+        string target = user.Role == "Admin" ? "/admin" : "/my-bookings";
         if (!string.IsNullOrWhiteSpace(returnUrl))
         {
             var decoded = System.Net.WebUtility.UrlDecode(returnUrl);
