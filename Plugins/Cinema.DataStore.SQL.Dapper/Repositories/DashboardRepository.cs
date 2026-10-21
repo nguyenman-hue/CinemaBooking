@@ -23,14 +23,14 @@ public class DashboardRepository : IDashboardRepository
         var dto = new DashboardOverviewDto();
         var yesterday = today.AddDays(-1);
 
-        // 1. Doanh thu & Vé bán Hôm nay và Hôm qua
+        // 1. Doanh thu & Vé bán Hôm nay và Hôm qua (Số liệu chuẩn thời gian thực)
         const string revenueSql = @"
             SELECT 
                 ISNULL(SUM(CASE WHEN CAST(b.BookingTime AS DATE) = CAST(@Today AS DATE) THEN b.TotalAmount ELSE 0 END), 0) AS TodayRevenue,
                 ISNULL(SUM(CASE WHEN CAST(b.BookingTime AS DATE) = CAST(@Yesterday AS DATE) THEN b.TotalAmount ELSE 0 END), 0) AS YesterdayRevenue,
                 ISNULL(SUM(b.TotalAmount), 0) AS TotalAllTimeRevenue
             FROM dbo.Booking b
-            WHERE b.Status = 'Confirmed' OR b.Status IS NULL OR b.Status = N'Đã thanh toán';
+            WHERE b.Status = 'Confirmed' OR b.Status IS NULL OR b.Status = N'Da thanh toán';
 
             SELECT 
                 ISNULL(SUM(CASE WHEN CAST(b.BookingTime AS DATE) = CAST(@Today AS DATE) THEN 1 ELSE 0 END), 0) AS TodayTickets,
@@ -38,7 +38,7 @@ public class DashboardRepository : IDashboardRepository
                 COUNT(t.TicketId) AS TotalAllTimeTickets
             FROM dbo.Ticket t
             INNER JOIN dbo.Booking b ON t.BookingId = b.BookingId
-            WHERE b.Status = 'Confirmed' OR b.Status IS NULL OR b.Status = N'Đã thanh toán';";
+            WHERE b.Status = 'Confirmed' OR b.Status IS NULL OR b.Status = N'Da thanh toán';";
 
         using (var multi = await connection.QueryMultipleAsync(revenueSql, new { Today = today.Date, Yesterday = yesterday.Date }))
         {
@@ -47,13 +47,7 @@ public class DashboardRepository : IDashboardRepository
             {
                 dto.TodayRevenue = (decimal)(revData.TodayRevenue ?? 0m);
                 dto.YesterdayRevenue = (decimal)(revData.YesterdayRevenue ?? 0m);
-                decimal totalRev = (decimal)(revData.TotalAllTimeRevenue ?? 0m);
-
-                // Nếu hôm nay chưa có đơn mới thì hiển thị tổng doanh thu
-                if (dto.TodayRevenue == 0 && totalRev > 0)
-                {
-                    dto.TodayRevenue = totalRev;
-                }
+                dto.TotalAllTimeRevenue = (decimal)(revData.TotalAllTimeRevenue ?? 0m);
 
                 if (dto.YesterdayRevenue > 0)
                 {
@@ -63,6 +57,10 @@ public class DashboardRepository : IDashboardRepository
                 {
                     dto.RevenueGrowthPercent = 100.0;
                 }
+                else
+                {
+                    dto.RevenueGrowthPercent = 0.0;
+                }
             }
 
             var ticketData = await multi.ReadFirstOrDefaultAsync<dynamic>();
@@ -70,12 +68,7 @@ public class DashboardRepository : IDashboardRepository
             {
                 dto.TodayTickets = (int)(ticketData.TodayTickets ?? 0);
                 dto.YesterdayTickets = (int)(ticketData.YesterdayTickets ?? 0);
-                int totalTickets = (int)(ticketData.TotalAllTimeTickets ?? 0);
-
-                if (dto.TodayTickets == 0 && totalTickets > 0)
-                {
-                    dto.TodayTickets = totalTickets;
-                }
+                dto.TotalAllTimeTickets = (int)(ticketData.TotalAllTimeTickets ?? 0);
 
                 if (dto.YesterdayTickets > 0)
                 {
@@ -84,6 +77,10 @@ public class DashboardRepository : IDashboardRepository
                 else if (dto.TodayTickets > 0)
                 {
                     dto.TicketGrowthPercent = 100.0;
+                }
+                else
+                {
+                    dto.TicketGrowthPercent = 0.0;
                 }
             }
         }
@@ -102,7 +99,7 @@ public class DashboardRepository : IDashboardRepository
             dto.NewMoviesThisMonth = (int)(movieData.NewMovies ?? 0);
         }
 
-        // 3. Tỷ lệ lấp đầy
+        // 3. Tỷ lệ lấp đầy ghế theo suất chiếu hôm nay
         const string occupancySql = @"
             SELECT 
                 ISNULL(SUM(a.TotalSeats), 0) AS TotalSeatsToday,
@@ -132,24 +129,6 @@ public class DashboardRepository : IDashboardRepository
 
             dto.OccupancyRateToday = totalSeatsToday > 0 ? Math.Round((double)bookedSeatsToday / totalSeatsToday * 100, 1) : 0;
             dto.OccupancyRateYesterday = totalSeatsYest > 0 ? Math.Round((double)bookedSeatsYest / totalSeatsYest * 100, 1) : 0;
-
-            if (dto.OccupancyRateToday == 0)
-            {
-                const string avgOccSql = @"
-                    SELECT 
-                        ISNULL(SUM(a.TotalSeats), 0) AS TotalSeatsAll,
-                        ISNULL(COUNT(t.TicketId), 0) AS BookedSeatsAll
-                    FROM dbo.Showtime s
-                    INNER JOIN dbo.Auditorium a ON s.AuditoriumId = a.AuditoriumId
-                    LEFT JOIN dbo.Ticket t ON s.ShowtimeId = t.ShowtimeId
-                    WHERE s.IsActive = 1;";
-                var avgOcc = await connection.QueryFirstOrDefaultAsync<OccRawRow>(avgOccSql);
-                if (avgOcc != null && avgOcc.TotalSeatsAll > 0)
-                {
-                    dto.OccupancyRateToday = Math.Round((double)avgOcc.BookedSeatsAll / avgOcc.TotalSeatsAll * 100, 1);
-                }
-            }
-
             dto.OccupancyGrowthPercent = Math.Round(dto.OccupancyRateToday - dto.OccupancyRateYesterday, 1);
         }
 

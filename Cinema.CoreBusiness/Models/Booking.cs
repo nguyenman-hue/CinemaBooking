@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Cinema.CoreBusiness.Utilities;
 
 namespace Cinema.CoreBusiness.Models;
 
@@ -22,7 +23,7 @@ public class Booking
     public string CustomerPhone { get; set; } = string.Empty;
 
     public decimal TotalAmount { get; set; }
-    public DateTime BookingTime { get; set; } = DateTime.UtcNow;
+    public DateTime BookingTime { get; set; } = VietnamTime.Now;
     public string Status { get; set; } = "Confirmed";
     public string PaymentMethod { get; set; } = "VNPAY-QR";
 

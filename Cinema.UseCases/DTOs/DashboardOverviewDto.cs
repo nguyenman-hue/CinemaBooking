@@ -6,10 +6,12 @@ public class DashboardOverviewDto
     public decimal TodayRevenue { get; set; }
     public decimal YesterdayRevenue { get; set; }
     public double RevenueGrowthPercent { get; set; }
+    public decimal TotalAllTimeRevenue { get; set; }
 
     public int TodayTickets { get; set; }
     public int YesterdayTickets { get; set; }
     public double TicketGrowthPercent { get; set; }
+    public int TotalAllTimeTickets { get; set; }
 
     public int ActiveMoviesCount { get; set; }
     public int NewMoviesThisMonth { get; set; }

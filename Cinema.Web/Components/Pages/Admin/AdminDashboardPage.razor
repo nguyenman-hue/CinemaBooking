@@ -51,7 +51,7 @@
                 <div class="card p-3 p-xl-4 h-100 border-0 shadow-sm"
                      style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 18px;">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="small fw-semibold" style="color: #94a3b8;">Doanh Thu</span>
+                        <span class="small fw-semibold" style="color: #94a3b8;">Doanh Thu Hôm Nay</span>
                         <div class="d-flex align-items-center justify-content-center rounded-3"
                              style="width: 42px; height: 42px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.25); color: #10b981;">
                             <i class="bi bi-cash-stack fs-5"></i>
@@ -61,13 +61,17 @@
                         @_dashboard.TodayRevenue.ToString("N0") đ
                     </h3>
                     <div class="d-flex align-items-center gap-1 small">
-                        @if (_dashboard.RevenueGrowthPercent >= 0)
+                        @if (_dashboard.RevenueGrowthPercent > 0)
                         {
                             <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.RevenueGrowthPercent.ToString("F0")%</span>
                         }
-                        else
+                        else if (_dashboard.RevenueGrowthPercent < 0)
                         {
                             <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.RevenueGrowthPercent.ToString("F0")%</span>
+                        }
+                        else
+                        {
+                            <span class="fw-bold text-secondary">0%</span>
                         }
                         <span style="color: #64748b;">so với hôm qua</span>
                     </div>
@@ -89,13 +93,17 @@
                         @_dashboard.TodayTickets.ToString("N0") vé
                     </h3>
                     <div class="d-flex align-items-center gap-1 small">
-                        @if (_dashboard.TicketGrowthPercent >= 0)
+                        @if (_dashboard.TicketGrowthPercent > 0)
                         {
                             <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.TicketGrowthPercent.ToString("F0")%</span>
                         }
-                        else
+                        else if (_dashboard.TicketGrowthPercent < 0)
                         {
                             <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.TicketGrowthPercent.ToString("F0")%</span>
+                        }
+                        else
+                        {
+                            <span class="fw-bold text-secondary">0%</span>
                         }
                         <span style="color: #64748b;">so với hôm qua</span>
                     </div>
@@ -138,13 +146,17 @@
                         @_dashboard.OccupancyRateToday.ToString("F1")%
                     </h3>
                     <div class="d-flex align-items-center gap-1 small">
-                        @if (_dashboard.OccupancyGrowthPercent >= 0)
+                        @if (_dashboard.OccupancyGrowthPercent > 0)
                         {
                             <span class="fw-bold text-success"><i class="bi bi-arrow-up-short"></i>+@_dashboard.OccupancyGrowthPercent.ToString("F1")%</span>
                         }
-                        else
+                        else if (_dashboard.OccupancyGrowthPercent < 0)
                         {
                             <span class="fw-bold text-danger"><i class="bi bi-arrow-down-short"></i>@_dashboard.OccupancyGrowthPercent.ToString("F1")%</span>
+                        }
+                        else
+                        {
+                            <span class="fw-bold text-secondary">0.0%</span>
                         }
                         <span style="color: #64748b;">so với hôm qua</span>
                     </div>
@@ -264,7 +276,7 @@
                             </svg>
                             <!-- Center Text inside Donut -->
                             <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none;">
-                                <div class="fw-bold text-white fs-5 mb-0">@_dashboard.TodayTickets</div>
+                                <div class="fw-bold text-white fs-5 mb-0">@(_dashboard.TotalAllTimeTickets > 0 ? _dashboard.TotalAllTimeTickets : _dashboard.TopMovies.Sum(m => m.TicketsSold))</div>
                                 <small style="font-size: 0.7rem; color: #94a3b8;">Tổng Vé</small>
                             </div>
                         </div>

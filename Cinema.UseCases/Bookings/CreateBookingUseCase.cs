@@ -66,6 +66,7 @@ public class CreateBookingUseCase : ICreateBookingUseCase
         string datePrefix = VietnamTime.Now.ToString("yyyyMMdd");
         string randomSuffix = Guid.NewGuid().ToString("N")[..6].ToUpper();
         booking.BookingReference = $"BK-{datePrefix}-{randomSuffix}";
+        booking.BookingTime = VietnamTime.Now;
 
         foreach (var seatId in seatIdsList)
         {
