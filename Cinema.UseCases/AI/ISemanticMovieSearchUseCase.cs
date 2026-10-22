@@ -8,9 +8,9 @@ namespace Cinema.UseCases.AI;
 public interface ISemanticMovieSearchUseCase
 {
     /// <summary>
-    /// Hoi thoai truc tiep voi AI kem goi y phim va suat chieu thuc te
+    /// Hoi thoai truc tiep voi AI kem goi y phim va suat chieu thuc te, co ho tro bo nho lich su hoi thoai
     /// </summary>
-    Task<AiChatResponseDto> ChatAsync(string naturalLanguageQuery, DateTime? preferredDate = null);
+    Task<AiChatResponseDto> ChatAsync(string naturalLanguageQuery, DateTime? preferredDate = null, List<AiChatMessageDto>? history = null);
 
     /// <summary>
     /// Tim kiem phim theo ngu nghia (tuong thich nguoc)

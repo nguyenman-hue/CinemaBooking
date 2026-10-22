@@ -1,18 +1,18 @@
-﻿using Cinema.CoreBusiness.Utilities;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Cinema.CoreBusiness.Models;
+using Cinema.CoreBusiness.Utilities;
 using Cinema.UseCases.DTOs;
 using Cinema.UseCases.PluginInterfaces.DataStore;
 
 namespace Cinema.UseCases.AI;
 
 /// <summary>
-/// Trien khai UseCase tim kiem phim thong minh (Semantic Search) va Tro ly AI dien anh.
-/// Ho tro tich hop truc tiep Google Gemini API voi co che tu dong chuyen doi Model khi cham han muc (Quota),
-/// va co che Fallback thong minh cuc bo (Offline).
+/// Trien khai UseCase tim kiem phim thong minh (Semantic Search) va Tro ly AI da nang nhu ChatGPT.
+/// Ho tro tich hop truc tiep Google Gemini API voi bo nho hoi thoai (Multi-turn Chat History),
+/// co che tu dong chuyen doi Model khi cham han muc (Quota), va Fallback thong minh cuc bo (Offline).
 /// </summary>
 public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
 {
@@ -26,9 +26,9 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
     private static readonly string[] FallbackModels = new[]
     {
         "gemini-2.5-flash-lite",
-        "gemini-2.5-flash",
         "gemini-flash-lite-latest",
-        "gemini-3-flash-preview"
+        "gemini-2.5-flash",
+        "gemini-3.5-flash-lite"
     };
 
     public SemanticMovieSearchUseCase(
@@ -66,15 +66,15 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
     }
 
     /// <summary>
-    /// Hoi thoai thuc te voi Tro ly AI (tuong thich 100% ChatGPT/Gemini)
+    /// Hoi thoai thuc te voi Tro ly AI (toan dien nhu ChatGPT voi bo nho ngu canh lich su)
     /// </summary>
-    public async Task<AiChatResponseDto> ChatAsync(string naturalLanguageQuery, DateTime? preferredDate = null)
+    public async Task<AiChatResponseDto> ChatAsync(string naturalLanguageQuery, DateTime? preferredDate = null, List<AiChatMessageDto>? history = null)
     {
         if (string.IsNullOrWhiteSpace(naturalLanguageQuery))
         {
             return new AiChatResponseDto
             {
-                ReplyMessage = "Chào bạn! Mình là Trợ lý AI Starlight Cinema. Bạn muốn tìm phim theo thể loại nào, diễn viên nào hay suất chiếu mấy giờ hôm nay nè?",
+                ReplyMessage = "Chào bạn! Mình là Trợ lý AI Starlight Cinema. Mình có thể giúp gì cho bạn hôm nay nà? Bạn muốn tìm phim, xem suất chiếu hay trò chuyện gì cứ nhắn mình nhé!",
                 Recommendations = new List<AiMovieRecommendationDto>()
             };
         }
@@ -99,8 +99,9 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
 
         if (!string.IsNullOrWhiteSpace(_effectiveApiKey))
         {
-            // Thu lan luot model chinh, neu gap 429 quota thi tu dong chuyen sang model du phong
-            var modelsToTry = new List<string> { _primaryModel };
+            // Thu lan luot model chinh, neu gap 429 quota thi tu dong chuyen sang cac model nhe du phong
+            var modelsToTry = new List<string>();
+            if (!string.IsNullOrWhiteSpace(_primaryModel)) modelsToTry.Add(_primaryModel);
             foreach (var m in FallbackModels)
             {
                 if (!modelsToTry.Contains(m)) modelsToTry.Add(m);
@@ -118,6 +119,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
                         targetDate,
                         timeStart,
                         timeEnd,
+                        history,
                         _effectiveApiKey,
                         model);
 
@@ -142,7 +144,8 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
             targetDate,
             timeStart,
             timeEnd,
-            timeReason);
+            timeReason,
+            history);
     }
 
     /// <summary>
@@ -162,6 +165,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         DateTime targetDate,
         TimeSpan timeStart,
         TimeSpan timeEnd,
+        List<AiChatMessageDto>? history,
         string apiKey,
         string modelName)
     {
@@ -193,30 +197,56 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
                     : $"TÌNH TRẠNG RẠP HÔM NAY ({nowVn:dd/MM/yyyy}): Hôm nay rạp KHÔNG CÒN bất kỳ suất chiếu nào (tất cả các suất chiếu đã kết thúc).")
                 : $"TÌNH TRẠNG: Khách đang hỏi ngày {targetDate:dd/MM/yyyy}.");
 
-        var systemPrompt =
-            "Bạn là Starlight AI - Trợ lý điện ảnh thông minh, cực kỳ duyên dáng, tâm lý và am hiểu sâu sắc của rạp chiếu phim Starlight Cinema Huế.\n" +
-            "Bạn hiểu được MỌI kiểu giao tiếp của người Việt: nói tắt, viết tắt (k, j, z, s...), tiếng lóng (cuốn, dở, cháy, ổn áp, bánh cuốn...), hỏi tâm trạng, đùa vui, hay hỏi tư vấn cụ thể.\n\n" +
-            "=== NGỮ CẢNH THỜI GIAN THỰC ===\n" +
-            contextHeader + "\n\n" +
-            "=== DANH SÁCH PHIM & SUẤT CHIẾU THỰC TẾ TẠI RẠP ===\n" +
-            moviesSummary + "\n\n" +
-            "Khách hàng nhắn: \"" + userQuery + "\"\n\n" +
-            "=== QUY TẮC PHẢN HỒI THÔNG MINH, CHUẨN XÁC ===\n" +
-            "1. NẾU KHÁCH HỎI CÒN PHIM NÀO ĐANG CHIẾU / HÔM NAY CÓ PHIM GÌ CHIẾU / CÒN SUẤT CHIẾU NÀO KHÔNG:\n" +
-            "   - NẾU HÔM NAY CÓ SUẤT CHIẾU (như 09:00, 14:00, 19:00...): Phải khẳng định NGAY là hôm nay rạp CÓ suất chiếu, giới thiệu hào hứng tên phim, khung giờ và phòng chiếu! TUYỆT ĐỐI KHÔNG ĐƯỢC NÓI 'các suất chiếu hôm nay đã khép lại/kết thúc' khi mà hôm nay vẫn còn suất chiếu (dù lúc nhắn tin đang là nửa đêm hay rạng sáng, hễ có suất chiếu ban ngày là phải giới thiệu ngay)! Đưa phim đó vào mục 'movies' để hiển thị thẻ phim cho khách đặt vé.\n" +
-            "   - CHỈ KHI NÀO thực sự trong cả ngày hôm nay KHÔNG CÒN một suất chiếu nào: Mới thông báo là rạp đã kết thúc toàn bộ suất chiếu hôm nay, hẹn khách ngày mai (khi đó mục 'movies' là []).\n\n" +
-            "2. NẾU KHÁCH TÌM PHIM (theo thể loại, diễn viên, tâm trạng buồn/vui, đi với người yêu, gia đình, phim kinh dị/hài hước...):\n" +
-            "   - Lắng nghe cảm xúc của khách, trò chuyện và tư vấn thật ngọt ngào, tinh tế như một người bạn sành phim.\n" +
-            "   - Chọn 1 đến 4 phim THỰC SỰ PHÙ HỢP NHẤT từ danh sách trên để đưa vào mục 'movies' kèm 'score' (70-99) và 'reason' (lý do cụ thể vì sao phim này hợp với khách).\n\n" +
-            "3. NẾU KHÁCH CHỈ CHÀO HỎI, NÓI CHUYỆN NGOÀI LỀ, ĐÙA VUI HOẶC HỎI BẠN LÀ AI:\n" +
-            "   - Trò chuyện tự nhiên, dí dỏm, thông minh và thân thiện. Mục 'movies' là [].\n\n" +
-            "4. ĐỊNH DẠNG TRẢ VỀ: BẮT BUỘC là JSON thuần túy (không bọc trong markdown ```json ``` thừa thãi):\n" +
-            "{\n" +
-            "  \"reply\": \"Câu trả lời tự nhiên, tinh tế, dí dỏm của bạn dành cho khách...\",\n" +
-            "  \"movies\": [\n" +
-            "    { \"movieId\": 1, \"score\": 95, \"reason\": \"Lý do ngắn gọn vì sao phim này hợp với khách...\" }\n" +
-            "  ]\n" +
-            "}";
+        var historyText = (history != null && history.Any())
+            ? string.Join("\n", history.Select(h => (h.IsUser ? "Khách: " : "Starlight AI: ") + h.Message))
+            : "Chưa có hội thoại trước đó.";
+
+        var systemPrompt = $@"Bạn là Starlight AI - Trợ lý AI thế hệ mới đa năng và toàn diện của rạp chiếu phim Starlight Cinema Huế (trung tâm TP. Huế).
+Bạn sở hữu trí tuệ nhân tạo sâu rộng, toàn diện như ChatGPT / Gemini: bạn am hiểu mọi lĩnh vực từ văn hóa, xã hội, giáo dục, trường học, giảng viên, công nghệ thông tin (C#, .NET, SQL, React, AI, thuật toán), kinh tế, đời sống...
+Bạn hiểu được MỌI kiểu giao tiếp của người Việt: nói tắt, viết tắt (k, j, z, s...), tiếng lóng (cuốn, đỉnh, cháy, ổn áp, bánh cuốn...), hỏi tâm trạng, đùa vui, hay hỏi tư vấn cụ thể.
+
+=== TRI THỨC ĐẶC BIỆT VỀ GIÁO DỤC, ĐẠI HỌC HUẾ & TRƯỜNG ĐẠI HỌC KINH TẾ (HCE) ===
+- Bạn am hiểu sâu sắc về Đại học Huế và Trường Đại học Kinh tế - Đại học Huế (HCE - Hue College of Economics, địa chỉ: 99 Hồ Đắc Di, TP. Huế).
+- THÔNG TIN VỀ THẦY HÀ NGỌC LONG (HCE):
+  + Học vị & chức danh: Tiến sĩ (TS. Hà Ngọc Long).
+  + Quá trình đào tạo: Cử nhân ngành Hệ thống thông tin quản lý tại HCE (2012); Thạc sĩ Kỹ thuật công nghiệp tại ĐH Inje, Hàn Quốc (2017); Tiến sĩ ngành Hệ thống thông tin tại ĐH Inje, Hàn Quốc (2021).
+  + Đơn vị công tác: Giảng viên tại Khoa Hệ thống Thông tin Kinh tế (hoặc Khoa Thống kê - Tin học), Trường Đại học Kinh tế, Đại học Huế (HCE).
+  + Lĩnh vực chuyên môn, giảng dạy & nghiên cứu nổi bật: Cấu trúc dữ liệu và giải thuật, Lập trình ứng dụng / phần mềm, Trí tuệ nhân tạo (AI), Hệ thống thông tin quản lý (MIS), Quản trị quy trình doanh nghiệp (BPM), Chuyển đổi số, Fintech, Process Mining...
+  + Thầy là giảng viên rất uy tín, chuyên môn cao, phương pháp giảng dạy rõ ràng, nhiệt huyết và luôn tận tâm hỗ trợ sinh viên trong học tập, nghiên cứu khoa học cũng như hướng dẫn khóa luận/đồ án tốt nghiệp xuất sắc.
+  + KHI ĐƯỢC HỎI VỀ THẦY HÀ NGỌC LONG HOẶC THẦY CÔ TẠI HCE / ĐẠI HỌC HUẾ: Hãy nhận ra ngay với sự kính trọng, lễ phép, trả lời đầy đủ, chi tiết, tôn vinh chuyên môn và học vị của thầy! (Tuyệt đối không bao giờ nói 'tên lạ lạ' hay 'em chỉ biết phim ảnh').
+
+=== NĂNG LỰC ĐIỆN ẢNH & SUẤT CHIẾU RẠP STARLIGHT HUẾ (BẢO LƯU 100%) ===
+=== NGỮ CẢNH THỜI GIAN THỰC ===
+{contextHeader}
+
+=== DANH SÁCH PHIM & SUẤT CHIẾU THỰC TẾ TẠI RẠP ===
+{moviesSummary}
+
+=== LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY CỦA PHIÊN HỘI THOẠI ===
+{historyText}
+
+Khách hàng vừa gửi tin nhắn mới nhất: ""{userQuery}""
+
+=== QUY TẮC PHẢN HỒI THÔNG MINH, TOÀN DIỆN CHUẨN CHATGPT ===
+1. KHI KHÁCH HỎI VỀ PHIM ẢNH, RẠP CHIẾU, TÌM PHIM, SUẤT CHIẾU HÔM NAY:
+   - ĐÂY LÀ NHIỆM VỤ ĐIỆN ẢNH CỦA RẠP: Phải đọc chính xác dữ liệu phim và suất chiếu thực tế từ danh sách bên trên.
+   - NẾU HÔM NAY CÓ SUẤT CHIẾU (như 09:00, 14:00, 19:00...): Phải khẳng định NGAY là hôm nay rạp CÓ suất chiếu, giới thiệu hào hứng tên phim, khung giờ và phòng chiếu! Đưa các phim phù hợp vào danh sách 'movies' để giao diện hiển thị thẻ phim cho khách đặt vé.
+   - NẾU KHÁCH TÌM PHIM THEO THỂ LOẠI / TÂM TRẠNG / ĐI VỚI BẠN BÈ / NGƯỜI YÊU: Tư vấn tinh tế, chọn đúng 1 đến 4 phim thực sự phù hợp từ danh sách rạp, đưa vào danh sách 'movies' kèm 'score' (70-99) và 'reason'.
+   - CHỈ KHI NÀO thực sự trong cả ngày hôm nay KHÔNG CÒN một suất chiếu nào thì mới thông báo rạp đã kết thúc suất hôm nay (khi đó 'movies': []).
+
+2. KHI KHÁCH HỎI VỀ BẤT KỲ CHỦ ĐỀ NÀO KHÁC (Thầy cô, trường học HCE, sinh viên, học tập, công nghệ thông tin, lập trình C#/.NET/React/SQL/AI, khoa học, văn hóa Huế, giao tiếp, câu hỏi nối tiếp từ lịch sử...):
+   - Trả lời ĐẦY ĐỦ, CHÍNH XÁC, SÂU RỘNG, THÔNG MINH NHƯ CHATGPT / GEMINI.
+   - Hãy xâu chuỗi thông tin từ lịch sử trò chuyện để hiểu rõ các câu hỏi tiếp nối (ví dụ khách vừa hỏi 'biết thầy hà ngọc long không' rồi câu sau nói 'dạy ở trường đại học kinh tế ấy' thì phải hiểu ngay là đang hỏi về TS. Hà Ngọc Long tại HCE).
+   - Thái độ văn minh, lịch sự, duyên dáng. Trả lời xong có thể thêm 1 câu chúc học tập tốt / hoàn thành đồ án xuất sắc hoặc rủ ghé rạp thư giãn nếu phù hợp tự nhiên.
+   - Trong trường hợp này, danh sách 'movies' là [] (vì không phải đang tìm phim chiếu rạp).
+
+3. ĐỊNH DẠNG TRẢ VỀ: BẮT BUỘC là JSON thuần túy (không bọc trong markdown ```json ``` thừa thãi):
+{{
+  ""reply"": ""Nội dung trả lời chi tiết, thông minh, sâu rộng của bạn dành cho khách..."",
+  ""movies"": [
+    {{ ""movieId"": 1, ""score"": 95, ""reason"": ""Lý do ngắn gọn..."" }}
+  ]
+}}";
 
         var requestBody = new
         {
@@ -339,9 +369,35 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         DateTime targetDate,
         TimeSpan timeFilterStart,
         TimeSpan timeFilterEnd,
-        string timeReason)
+        string timeReason,
+        List<AiChatMessageDto>? history = null)
     {
-        // 0. Kiem tra hoi con phim / con suat chieu khong khi da khuya het suat
+        // 0. Kiem tra hoi ve thay Ha Ngoc Long / HCE / Dai hoc Kinh te Hue (kể cả khi offline / fallback)
+        string fullContextNorm = normalizedQuery;
+        if (history != null && history.Any())
+        {
+            fullContextNorm = string.Join(" ", history.Select(h => NormalizeText(h.Message))) + " " + normalizedQuery;
+        }
+
+        if (fullContextNorm.Contains("ha ngoc long") || fullContextNorm.Contains("thay long") || (fullContextNorm.Contains("ngoc long") && fullContextNorm.Contains("kinh te")))
+        {
+            return new AiChatResponseDto
+            {
+                ReplyMessage = "Dạ, TS. Hà Ngọc Long là giảng viên rất uy tín, tâm huyết tại Khoa Hệ thống Thông tin Kinh tế (Trường Đại học Kinh tế, Đại học Huế - HCE)! Thầy tốt nghiệp Tiến sĩ ngành Hệ thống thông tin tại Đại học Inje (Hàn Quốc) và chuyên sâu về Trí tuệ nhân tạo (AI), Cấu trúc dữ liệu & Giải thuật, Quản trị quy trình doanh nghiệp (BPM), Lập trình ứng dụng và Chuyển đổi số. Thầy luôn được các thế hệ sinh viên HCE kính trọng và yêu mến!",
+                Recommendations = new List<AiMovieRecommendationDto>()
+            };
+        }
+
+        if (fullContextNorm.Contains("hce") || fullContextNorm.Contains("dai hoc kinh te hue") || fullContextNorm.Contains("truong dai hoc kinh te"))
+        {
+            return new AiChatResponseDto
+            {
+                ReplyMessage = "Dạ, Trường Đại học Kinh tế - Đại học Huế (HCE) tại 99 Hồ Đắc Di, TP. Huế là ngôi trường đào tạo kinh tế, quản trị và hệ thống thông tin hàng đầu miền Trung! Các bạn sinh viên HCE vừa năng động, giỏi giang vừa là những khán giả thân thiết của Starlight Cinema Huế đó ạ!",
+                Recommendations = new List<AiMovieRecommendationDto>()
+            };
+        }
+
+        // 1. Kiem tra hoi con phim / con suat chieu khong khi da khuya het suat
         bool isLookingForCurrentShowings = normalizedQuery.Contains("con phim") || normalizedQuery.Contains("dang chieu") ||
                                            normalizedQuery.Contains("con suat") || normalizedQuery.Contains("chieu khong") ||
                                            normalizedQuery.Contains("chieu k") || normalizedQuery.Contains("chieu j") ||
@@ -356,7 +412,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
             };
         }
 
-        // 1. Kiem tra chao hoi hoac tro chuyen chung chung
+        // 2. Kiem tra chao hoi hoac tro chuyen chung chung
         bool isGreeting = normalizedQuery == "chao" || normalizedQuery.StartsWith("chao ") ||
                           normalizedQuery == "hello" || normalizedQuery == "hi" || normalizedQuery == "alo" ||
                           normalizedQuery.Contains("ban la ai") || normalizedQuery.Contains("ai day") ||
@@ -371,7 +427,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
             };
         }
 
-        // 2. Kiem tra hoi khung gio cu the (chi khi khong phai hoi the loai)
+        // 3. Kiem tra hoi khung gio cu the (chi khi khong phai hoi the loai)
         bool hasSpecificTimeFilter = (timeFilterStart > TimeSpan.Zero || timeFilterEnd < new TimeSpan(23, 59, 59));
         bool hasGenreKeyword = normalizedQuery.Contains("hanh dong") || normalizedQuery.Contains("tinh cam") ||
                                normalizedQuery.Contains("hoat hinh") || normalizedQuery.Contains("gia dinh") ||
@@ -429,7 +485,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
             }
         }
 
-        // 3. Cham diem theo the loai, dien vien, dao dien, tu khoa
+        // 4. Cham diem theo the loai, dien vien, dao dien, tu khoa
         var scoredList = new List<AiMovieRecommendationDto>();
         foreach (var movie in activeMovies)
         {
@@ -463,7 +519,7 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
             };
         }
 
-        // 4. Neu khong tim thay phim nao phu hop
+        // 5. Neu khong tim thay phim nao phu hop
         return new AiChatResponseDto
         {
             ReplyMessage = $"Rất tiếc hiện tại rạp chưa có suất chiếu phù hợp với yêu cầu '{originalQuery}'. Bạn có thể tham khảo các phim bom tấn đang chiếu tối nay tại rạp như Godzilla x Kong, Dune 2, Lật Mặt 7 hoặc Mai nhé!",
@@ -562,64 +618,62 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
         return (score, reasons);
     }
 
-    private (TimeSpan Start, TimeSpan End, string Reason) DetectTimePreference(string query)
-    {
-        if (query.Contains("8 gio dem") || query.Contains("8h dem") || query.Contains("20h") || query.Contains("sau 8"))
-        {
-            return (new TimeSpan(20, 0, 0), new TimeSpan(23, 59, 59), "Ưu tiên các suất chiếu sau 20h00");
-        }
-        if (query.Contains("9 gio dem") || query.Contains("9h dem") || query.Contains("21h") || query.Contains("sau 9"))
-        {
-            return (new TimeSpan(21, 0, 0), new TimeSpan(23, 59, 59), "Ưu tiên các suất chiếu sau 21h00");
-        }
-        if (query.Contains("dem") || query.Contains("muon") || query.Contains("khuya"))
-        {
-            return (new TimeSpan(21, 0, 0), new TimeSpan(23, 59, 59), "Ưu tiên các suất chiếu muộn sau 21h00");
-        }
-        if (query.Contains("toi nay") || query.Contains("buoi toi") || (query.Contains("toi") && !query.Contains("toi thay") && !query.Contains("toi nghi")))
-        {
-            return (new TimeSpan(18, 0, 0), new TimeSpan(23, 59, 59), "Ưu tiên các suất chiếu buổi tối (sau 18h00)");
-        }
-        if (query.Contains("buoi chieu") || query.Contains("chieu nay") || query.Contains("chieu mai") || query.Contains("dau chieu"))
-        {
-            return (new TimeSpan(13, 0, 0), new TimeSpan(18, 0, 0), "Ưu tiên các suất chiếu buổi chiều (13h00 - 18h00)");
-        }
-        if (query.Contains("buoi sang") || query.Contains("sang nay") || query.Contains("sang mai"))
-        {
-            return (new TimeSpan(8, 0, 0), new TimeSpan(12, 0, 0), "Ưu tiên các suất chiếu buổi sáng (08h00 - 12h00)");
-        }
-
-        return (TimeSpan.Zero, new TimeSpan(23, 59, 59), string.Empty);
-    }
-
     private DateTime DetectTargetDate(string query)
     {
-        if (query.Contains("ngay mai") || query.Contains("hom sau"))
+        var today = VietnamTime.Today;
+        if (query.Contains("ngay mai") || query.Contains("mai")) return today.AddDays(1);
+        if (query.Contains("ngay kia") || query.Contains("mot")) return today.AddDays(2);
+        if (query.Contains("cuoi tuan"))
         {
-            return VietnamTime.Today.AddDays(1);
+            int daysUntilSat = ((int)DayOfWeek.Saturday - (int)today.DayOfWeek + 7) % 7;
+            return today.AddDays(daysUntilSat == 0 ? 7 : daysUntilSat);
         }
-        return VietnamTime.Today;
+        return today;
     }
 
-    private string NormalizeText(string text)
+    private (TimeSpan Start, TimeSpan End, string Reason) DetectTimePreference(string query)
+    {
+        var match = Regex.Match(query, @"(\d{1,2})\s*(gio|h|g|:00)?");
+        if (match.Success && int.TryParse(match.Groups[1].Value, out int hour))
+        {
+            if (hour >= 7 && hour <= 23)
+            {
+                return (new TimeSpan(Math.Max(0, hour - 1), 0, 0), new TimeSpan(Math.Min(23, hour + 2), 0, 0), $"quanh khung gio {hour}:00");
+            }
+        }
+
+        if (query.Contains("sang") || query.Contains("buoi sang"))
+            return (new TimeSpan(8, 0, 0), new TimeSpan(12, 0, 0), "buoi sang (08:00 - 12:00)");
+
+        if (query.Contains("trua") || query.Contains("buoi trua"))
+            return (new TimeSpan(11, 30, 0), new TimeSpan(14, 0, 0), "buoi trua (11:30 - 14:00)");
+
+        if (query.Contains("chieu") || query.Contains("buoi chieu"))
+            return (new TimeSpan(13, 0, 0), new TimeSpan(18, 0, 0), "buoi chieu (13:00 - 18:00)");
+
+        if (query.Contains("toi muon") || query.Contains("khuya") || query.Contains("dem") || query.Contains("muon"))
+            return (new TimeSpan(20, 30, 0), new TimeSpan(23, 59, 59), "suat chieu toi muon (sau 20:30)");
+
+        if (query.Contains("toi") || query.Contains("buoi toi"))
+            return (new TimeSpan(18, 0, 0), new TimeSpan(22, 30, 0), "buoi toi (18:00 - 22:30)");
+
+        return (TimeSpan.Zero, new TimeSpan(23, 59, 59), "tat ca khung gio");
+    }
+
+    private static string NormalizeText(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-
-        text = text.ToLowerInvariant().Trim();
-        string normalized = text.Normalize(NormalizationForm.FormD);
+        var normalized = text.ToLowerInvariant().Replace('\u0111', 'd').Replace('\u0110', 'd').Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder();
-
         foreach (var c in normalized)
         {
-            var uc = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (uc != UnicodeCategory.NonSpacingMark)
+            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
             {
                 sb.Append(c);
             }
         }
-
-        string result = sb.ToString().Normalize(NormalizationForm.FormC);
-        result = result.Replace('\u0111', 'd').Replace('\u0110', 'd');
-        return Regex.Replace(result, @"\s+", " ");
+        var cleaned = Regex.Replace(sb.ToString().Normalize(NormalizationForm.FormC), @"[^a-z0-9\s]", " ");
+        return Regex.Replace(cleaned, @"\s+", " ").Trim();
     }
 }

@@ -258,7 +258,17 @@
 
         try
         {
-            var chatResult = await SemanticSearchUseCase.ChatAsync(userText);
+                        var previousHistory = _messages
+                .Take(_messages.Count - 1)
+                .TakeLast(6)
+                .Select(m => new AiChatMessageDto
+                {
+                    IsUser = m.IsUser,
+                    Message = m.Text
+                })
+                .ToList();
+
+            var chatResult = await SemanticSearchUseCase.ChatAsync(userText, history: previousHistory);
 
             // 2. Thêm phản hồi thực tế từ AI vào luồng hội thoại (bên trái)
             _messages.Add(new AiChatMessageItem

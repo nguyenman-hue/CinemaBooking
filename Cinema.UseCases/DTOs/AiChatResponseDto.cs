@@ -1,6 +1,13 @@
-﻿using Cinema.CoreBusiness.Models;
+﻿namespace Cinema.UseCases.DTOs;
 
-namespace Cinema.UseCases.DTOs;
+/// <summary>
+/// DTO chua thong tin 1 tin nhan trong lich su hoi thoai giua User va AI
+/// </summary>
+public class AiChatMessageDto
+{
+    public bool IsUser { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
 
 /// <summary>
 /// DTO chua phan hoi tro chuyen tu nhien va danh sach goi y phim tu Tro ly AI
