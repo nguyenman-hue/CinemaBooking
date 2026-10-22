@@ -205,15 +205,11 @@ public class SemanticMovieSearchUseCase : ISemanticMovieSearchUseCase
 Bạn sở hữu trí tuệ nhân tạo sâu rộng, toàn diện như ChatGPT / Gemini: bạn am hiểu mọi lĩnh vực từ văn hóa, xã hội, giáo dục, trường học, giảng viên, công nghệ thông tin (C#, .NET, SQL, React, AI, thuật toán), kinh tế, đời sống...
 Bạn hiểu được MỌI kiểu giao tiếp của người Việt: nói tắt, viết tắt (k, j, z, s...), tiếng lóng (cuốn, đỉnh, cháy, ổn áp, bánh cuốn...), hỏi tâm trạng, đùa vui, hay hỏi tư vấn cụ thể.
 
-=== TRI THỨC ĐẶC BIỆT VỀ GIÁO DỤC, ĐẠI HỌC HUẾ & TRƯỜNG ĐẠI HỌC KINH TẾ (HCE) ===
-- Bạn am hiểu sâu sắc về Đại học Huế và Trường Đại học Kinh tế - Đại học Huế (HCE - Hue College of Economics, địa chỉ: 99 Hồ Đắc Di, TP. Huế).
-- THÔNG TIN VỀ THẦY HÀ NGỌC LONG (HCE):
-  + Học vị & chức danh: Tiến sĩ (TS. Hà Ngọc Long).
-  + Quá trình đào tạo: Cử nhân ngành Hệ thống thông tin quản lý tại HCE (2012); Thạc sĩ Kỹ thuật công nghiệp tại ĐH Inje, Hàn Quốc (2017); Tiến sĩ ngành Hệ thống thông tin tại ĐH Inje, Hàn Quốc (2021).
-  + Đơn vị công tác: Giảng viên tại Khoa Hệ thống Thông tin Kinh tế (hoặc Khoa Thống kê - Tin học), Trường Đại học Kinh tế, Đại học Huế (HCE).
-  + Lĩnh vực chuyên môn, giảng dạy & nghiên cứu nổi bật: Cấu trúc dữ liệu và giải thuật, Lập trình ứng dụng / phần mềm, Trí tuệ nhân tạo (AI), Hệ thống thông tin quản lý (MIS), Quản trị quy trình doanh nghiệp (BPM), Chuyển đổi số, Fintech, Process Mining...
-  + Thầy là giảng viên rất uy tín, chuyên môn cao, phương pháp giảng dạy rõ ràng, nhiệt huyết và luôn tận tâm hỗ trợ sinh viên trong học tập, nghiên cứu khoa học cũng như hướng dẫn khóa luận/đồ án tốt nghiệp xuất sắc.
-  + KHI ĐƯỢC HỎI VỀ THẦY HÀ NGỌC LONG HOẶC THẦY CÔ TẠI HCE / ĐẠI HỌC HUẾ: Hãy nhận ra ngay với sự kính trọng, lễ phép, trả lời đầy đủ, chi tiết, tôn vinh chuyên môn và học vị của thầy! (Tuyệt đối không bao giờ nói 'tên lạ lạ' hay 'em chỉ biết phim ảnh').
+=== NĂNG LỰC TÌM KIẾM THỜI GIAN THỰC (GOOGLE SEARCH GROUNDING) ===
+- Bạn được tích hợp công cụ tìm kiếm Google thời gian thực (Google Search).
+- Khi người dùng hỏi về bất kỳ ai (giảng viên, thầy cô, trường Đại học Kinh tế HCE, Đại học Huế, nhà khoa học, nhân vật, sự kiện, công nghệ thông tin...), hãy tự động tìm kiếm trên Google để trả lời chính xác, mới nhất mà KHÔNG cần viết sẵn thông tin.
+- Phong cách phản hồi: Tự nhiên, ngắn gọn (khoảng 2-3 câu), đúng trọng tâm, tôn trọng và lịch sự.
+- Tuyệt đối không dùng những câu máy móc kiểu: 'Theo danh sách được cung cấp', 'Theo dữ liệu rạp'...
 
 === NĂNG LỰC ĐIỆN ẢNH & SUẤT CHIẾU RẠP STARLIGHT HUẾ (BẢO LƯU 100%) ===
 === NGỮ CẢNH THỜI GIAN THỰC ===
@@ -234,10 +230,10 @@ Khách hàng vừa gửi tin nhắn mới nhất: ""{userQuery}""
    - NẾU KHÁCH TÌM PHIM THEO THỂ LOẠI / TÂM TRẠNG / ĐI VỚI BẠN BÈ / NGƯỜI YÊU: Tư vấn tinh tế, chọn đúng 1 đến 4 phim thực sự phù hợp từ danh sách rạp, đưa vào danh sách 'movies' kèm 'score' (70-99) và 'reason'.
    - CHỈ KHI NÀO thực sự trong cả ngày hôm nay KHÔNG CÒN một suất chiếu nào thì mới thông báo rạp đã kết thúc suất hôm nay (khi đó 'movies': []).
 
-2. KHI KHÁCH HỎI VỀ BẤT KỲ CHỦ ĐỀ NÀO KHÁC (Thầy cô, trường học HCE, sinh viên, học tập, công nghệ thông tin, lập trình C#/.NET/React/SQL/AI, khoa học, văn hóa Huế, giao tiếp, câu hỏi nối tiếp từ lịch sử...):
-   - Trả lời ĐẦY ĐỦ, CHÍNH XÁC, SÂU RỘNG, THÔNG MINH NHƯ CHATGPT / GEMINI.
-   - Hãy xâu chuỗi thông tin từ lịch sử trò chuyện để hiểu rõ các câu hỏi tiếp nối (ví dụ khách vừa hỏi 'biết thầy hà ngọc long không' rồi câu sau nói 'dạy ở trường đại học kinh tế ấy' thì phải hiểu ngay là đang hỏi về TS. Hà Ngọc Long tại HCE).
-   - Thái độ văn minh, lịch sự, duyên dáng. Trả lời xong có thể thêm 1 câu chúc học tập tốt / hoàn thành đồ án xuất sắc hoặc rủ ghé rạp thư giãn nếu phù hợp tự nhiên.
+2. KHI KHÁCH HỎI VỀ BẤT KỲ CHỦ ĐỀ NÀO KHÁC (Thầy cô, trường học HCE, nhân vật, kiến thức, công nghệ thông tin C#/.NET/AI, văn hóa, đời sống...):
+   - Tận dụng Google Search để tìm kiếm và trả lời CHÍNH XÁC, THÔNG MINH, NGẮN GỌN (2-3 câu).
+   - Hãy xâu chuỗi thông tin từ lịch sử trò chuyện để hiểu rõ câu hỏi tiếp nối.
+   - Giữ văn phong tự nhiên, lễ phép, thân thiện. Tuyệt đối không ép giới thiệu phim khi khách đang hỏi kiến thức hay giao tiếp.
    - Trong trường hợp này, danh sách 'movies' là [] (vì không phải đang tìm phim chiếu rạp).
 
 3. ĐỊNH DẠNG TRẢ VỀ: BẮT BUỘC là JSON thuần túy (không bọc trong markdown ```json ``` thừa thãi):
@@ -259,13 +255,17 @@ Khách hàng vừa gửi tin nhắn mới nhất: ""{userQuery}""
                         new { text = systemPrompt }
                     }
                 }
+            },
+            tools = new object[]
+            {
+                new { google_search = new { } }
             }
         };
 
         var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
         var url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelName}:generateContent?key={apiKey}";
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var response = await _httpClient!.PostAsync(url, jsonContent, cts.Token);
         if (!response.IsSuccessStatusCode)
         {
@@ -275,13 +275,28 @@ Khách hàng vừa gửi tin nhắn mới nhất: ""{userQuery}""
         var responseString = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(responseString);
 
-        var textResult = doc.RootElement
-            .GetProperty("candidates")[0]
-            .GetProperty("content")
-            .GetProperty("parts")[0]
-            .GetProperty("text")
-            .GetString();
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+        {
+            return null;
+        }
 
+        var candidate = candidates[0];
+        if (!candidate.TryGetProperty("content", out var contentProp) ||
+            !contentProp.TryGetProperty("parts", out var partsProp))
+        {
+            return null;
+        }
+
+        var sb = new StringBuilder();
+        foreach (var part in partsProp.EnumerateArray())
+        {
+            if (part.TryGetProperty("text", out var textProp))
+            {
+                sb.Append(textProp.GetString());
+            }
+        }
+
+        var textResult = sb.ToString();
         if (string.IsNullOrWhiteSpace(textResult)) return null;
 
         var jsonClean = CleanJsonObject(textResult);
@@ -372,30 +387,11 @@ Khách hàng vừa gửi tin nhắn mới nhất: ""{userQuery}""
         string timeReason,
         List<AiChatMessageDto>? history = null)
     {
-        // 0. Kiem tra hoi ve thay Ha Ngoc Long / HCE / Dai hoc Kinh te Hue (kể cả khi offline / fallback)
-        string fullContextNorm = normalizedQuery;
-        if (history != null && history.Any())
-        {
-            fullContextNorm = string.Join(" ", history.Select(h => NormalizeText(h.Message))) + " " + normalizedQuery;
-        }
-
-        if (fullContextNorm.Contains("ha ngoc long") || fullContextNorm.Contains("thay long") || (fullContextNorm.Contains("ngoc long") && fullContextNorm.Contains("kinh te")))
-        {
-            return new AiChatResponseDto
-            {
-                ReplyMessage = "Dạ, TS. Hà Ngọc Long là giảng viên rất uy tín, tâm huyết tại Khoa Hệ thống Thông tin Kinh tế (Trường Đại học Kinh tế, Đại học Huế - HCE)! Thầy tốt nghiệp Tiến sĩ ngành Hệ thống thông tin tại Đại học Inje (Hàn Quốc) và chuyên sâu về Trí tuệ nhân tạo (AI), Cấu trúc dữ liệu & Giải thuật, Quản trị quy trình doanh nghiệp (BPM), Lập trình ứng dụng và Chuyển đổi số. Thầy luôn được các thế hệ sinh viên HCE kính trọng và yêu mến!",
-                Recommendations = new List<AiMovieRecommendationDto>()
-            };
-        }
-
-        if (fullContextNorm.Contains("hce") || fullContextNorm.Contains("dai hoc kinh te hue") || fullContextNorm.Contains("truong dai hoc kinh te"))
-        {
-            return new AiChatResponseDto
-            {
-                ReplyMessage = "Dạ, Trường Đại học Kinh tế - Đại học Huế (HCE) tại 99 Hồ Đắc Di, TP. Huế là ngôi trường đào tạo kinh tế, quản trị và hệ thống thông tin hàng đầu miền Trung! Các bạn sinh viên HCE vừa năng động, giỏi giang vừa là những khán giả thân thiết của Starlight Cinema Huế đó ạ!",
-                Recommendations = new List<AiMovieRecommendationDto>()
-            };
-        }
+        // 0. Khi he thong offline, neu nguoi dung hoi cac cau hoi khong lien quan den rap/phim
+        bool isMovieRelated = normalizedQuery.Contains("phim") || normalizedQuery.Contains("ve") ||
+                              normalizedQuery.Contains("chieu") || normalizedQuery.Contains("rap") ||
+                              normalizedQuery.Contains("suat") || normalizedQuery.Contains("gia") ||
+                              normalizedQuery.Contains("lich");
 
         // 1. Kiem tra hoi con phim / con suat chieu khong khi da khuya het suat
         bool isLookingForCurrentShowings = normalizedQuery.Contains("con phim") || normalizedQuery.Contains("dang chieu") ||
