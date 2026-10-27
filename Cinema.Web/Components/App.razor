@@ -29,6 +29,9 @@
             try {
                 var tabId = sessionStorage.getItem('Cinema_TabSessionId');
                 if (tabId && tabId.length > 5) {
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon('/api/seats/tab-heartbeat?sessionId=' + encodeURIComponent(tabId));
+                    }
                     return tabId;
                 }
                 var newId = 'session_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
@@ -57,11 +60,27 @@
 
         window.clearCinemaSession = function () {
             try {
+                var tabId = sessionStorage.getItem('Cinema_TabSessionId');
+                if (tabId && navigator.sendBeacon) {
+                    navigator.sendBeacon('/api/seats/release-now?sessionId=' + encodeURIComponent(tabId));
+                }
                 sessionStorage.removeItem('Cinema_TabSessionId');
                 localStorage.removeItem('Cinema_UserSessionId');
                 document.cookie = "Cinema_UserSessionId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             } catch (e) {}
         };
+
+        // Khi người dùng tắt tab hoặc đóng trình duyệt: tự động gửi beacon giải phóng ghế sau 1.5s (nếu không phải F5)
+        function notifyTabClosing() {
+            try {
+                var tabId = sessionStorage.getItem('Cinema_TabSessionId');
+                if (tabId && navigator.sendBeacon) {
+                    navigator.sendBeacon('/api/seats/tab-closed?sessionId=' + encodeURIComponent(tabId));
+                }
+            } catch (e) {}
+        }
+        window.addEventListener('pagehide', notifyTabClosing);
+        window.addEventListener('beforeunload', notifyTabClosing);
     </script>
     <script src="_framework/blazor.web.js"></script>
 </body>

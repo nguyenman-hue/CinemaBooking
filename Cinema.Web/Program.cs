@@ -229,7 +229,82 @@ app.MapGet("/logout", async (HttpContext context) =>
     return Results.LocalRedirect("/");
 });
 
+
+// Endpoints giải phóng ghế phiên làm việc khi tắt tab / đóng trình duyệt
+app.MapMethods("/api/seats/tab-closed", new[] { "GET", "POST" }, async (HttpContext context, ISeatHoldingStateStore holdingStore) =>
+{
+    string? sessionId = context.Request.Query["sessionId"].FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(sessionId))
+    {
+        if (context.Request.HasFormContentType)
+        {
+            var form = await context.Request.ReadFormAsync();
+            sessionId = form["sessionId"].FirstOrDefault();
+        }
+        else
+        {
+            using var reader = new StreamReader(context.Request.Body);
+            sessionId = await reader.ReadToEndAsync();
+        }
+    }
+
+    if (!string.IsNullOrWhiteSpace(sessionId))
+    {
+        holdingStore.ScheduleSessionRelease(sessionId.Trim(), TimeSpan.FromSeconds(1.5));
+    }
+    return Results.Ok();
+}).DisableAntiforgery();
+
+app.MapMethods("/api/seats/tab-heartbeat", new[] { "GET", "POST" }, async (HttpContext context, ISeatHoldingStateStore holdingStore) =>
+{
+    string? sessionId = context.Request.Query["sessionId"].FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(sessionId))
+    {
+        if (context.Request.HasFormContentType)
+        {
+            var form = await context.Request.ReadFormAsync();
+            sessionId = form["sessionId"].FirstOrDefault();
+        }
+        else
+        {
+            using var reader = new StreamReader(context.Request.Body);
+            sessionId = await reader.ReadToEndAsync();
+        }
+    }
+
+    if (!string.IsNullOrWhiteSpace(sessionId))
+    {
+        holdingStore.CancelScheduledSessionRelease(sessionId.Trim());
+    }
+    return Results.Ok();
+}).DisableAntiforgery();
+
+app.MapMethods("/api/seats/release-now", new[] { "GET", "POST" }, async (HttpContext context, ISeatHoldingStateStore holdingStore) =>
+{
+    string? sessionId = context.Request.Query["sessionId"].FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(sessionId))
+    {
+        if (context.Request.HasFormContentType)
+        {
+            var form = await context.Request.ReadFormAsync();
+            sessionId = form["sessionId"].FirstOrDefault();
+        }
+        else
+        {
+            using var reader = new StreamReader(context.Request.Body);
+            sessionId = await reader.ReadToEndAsync();
+        }
+    }
+
+    if (!string.IsNullOrWhiteSpace(sessionId))
+    {
+        holdingStore.ReleaseAllBySession(sessionId.Trim());
+    }
+    return Results.Ok();
+}).DisableAntiforgery();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+

@@ -15,11 +15,13 @@ public class SeatHoldingStateStore : ISeatHoldingStateStore
 
     // Key: $"{showtimeId}_{seatId}"
     private readonly ConcurrentDictionary<string, SeatHold> _holds = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingReleases = new();
 
     public event Action<int>? OnSeatsChanged;
 
     public bool TryHoldSeats(int showtimeId, IEnumerable<int> seatIds, string sessionId, TimeSpan duration)
     {
+        CancelScheduledSessionRelease(sessionId);
         CleanExpiredHolds();
         var now = DateTime.UtcNow;
         var expiresAt = now.Add(duration);
@@ -79,6 +81,7 @@ public class SeatHoldingStateStore : ISeatHoldingStateStore
     public void ReleaseAllBySession(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId)) return;
+        CancelScheduledSessionRelease(sessionId);
 
         var keysToRemove = _holds
             .Where(kvp => kvp.Value.SessionId == sessionId)
@@ -97,6 +100,46 @@ public class SeatHoldingStateStore : ISeatHoldingStateStore
         if (anyRemoved)
         {
             OnSeatsChanged?.Invoke(0);
+        }
+    }
+
+    public void ScheduleSessionRelease(string sessionId, TimeSpan delay)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId)) return;
+
+        CancelScheduledSessionRelease(sessionId);
+
+        var cts = new CancellationTokenSource();
+        _pendingReleases[sessionId] = cts;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delay, cts.Token);
+                if (!cts.Token.IsCancellationRequested)
+                {
+                    _pendingReleases.TryRemove(sessionId, out _);
+                    ReleaseAllBySession(sessionId);
+                }
+            }
+            catch (TaskCanceledException) { }
+            catch { }
+        }, cts.Token);
+    }
+
+    public void CancelScheduledSessionRelease(string sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId)) return;
+
+        if (_pendingReleases.TryRemove(sessionId, out var cts))
+        {
+            try
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+            catch { }
         }
     }
 

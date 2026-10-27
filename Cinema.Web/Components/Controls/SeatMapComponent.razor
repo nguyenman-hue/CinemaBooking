@@ -209,6 +209,7 @@
                 var clientSessionId = await JS.InvokeAsync<string>("getCinemaSessionId");
                 if (!string.IsNullOrWhiteSpace(clientSessionId))
                 {
+                    HoldingStore.CancelScheduledSessionRelease(clientSessionId);
                     if (clientSessionId != UserSession.SessionId)
                     {
                         UserSession.SetSessionId(clientSessionId);
@@ -543,3 +544,4 @@
         StopTimer();
     }
 }
+
