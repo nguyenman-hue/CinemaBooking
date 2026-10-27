@@ -239,7 +239,11 @@
 
     public async Task LoadSeatsAsync(bool notifyParent = false)
     {
-        _isLoading = true;
+        // Chỉ hiện spinner tải toàn màn hình ở lần đầu tiên khi chưa có danh sách ghế
+        if (_seats.Count == 0)
+        {
+            _isLoading = true;
+        }
         _loadError = null;
         try
         {
