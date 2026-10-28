@@ -935,3 +935,16 @@ code {
         border-radius: 16px !important;
     }
 }
+
+/* Xoa vien trang focus mac dinh khi Blazor dieu huong FocusOnNavigate */
+h1:focus, h1:focus-visible,
+h2:focus, h2:focus-visible,
+h3:focus, h3:focus-visible,
+h4:focus, h4:focus-visible,
+h5:focus, h5:focus-visible,
+h6:focus, h6:focus-visible,
+[tabindex]:focus, [tabindex]:focus-visible,
+[tabindex="-1"]:focus, [tabindex="-1"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
