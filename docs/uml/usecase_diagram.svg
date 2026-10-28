@@ -1,0 +1,151 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 680" width="950" height="680" style="background:#ffffff; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <defs>
+    <!-- Filters & Gradients -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-opacity="0.15" />
+    </filter>
+    <linearGradient id="sysGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+    <linearGradient id="custGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#eff6ff" />
+      <stop offset="100%" stop-color="#dbeafe" />
+    </linearGradient>
+    <linearGradient id="adminGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef2f2" />
+      <stop offset="100%" stop-color="#fee2e2" />
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#64748b" />
+    </marker>
+    <marker id="arrowDash" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#e11d48" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="475" y="32" text-anchor="middle" font-size="19" font-weight="800" fill="#0f172a" letter-spacing="0.5">SƠ ĐỒ USE CASE TỔNG THỂ HỆ THỐNG STARLIGHT CINEMA HUẾ</text>
+
+  <!-- System Boundary -->
+  <rect x="180" y="55" width="590" height="605" rx="16" fill="url(#sysGrad)" stroke="#cbd5e1" stroke-width="2" filter="url(#shadow)" />
+  <rect x="180" y="55" width="590" height="38" rx="16" fill="#1e293b" />
+  <rect x="180" y="77" width="590" height="16" fill="#1e293b" />
+  <text x="475" y="80" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff" letter-spacing="1">HỆ THỐNG ĐẶT VÉ RẠP PHIM (SYSTEM BOUNDARY)</text>
+
+  <!-- Package Customer -->
+  <rect x="200" y="110" width="270" height="530" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5" filter="url(#shadow)" />
+  <path d="M 200 110 L 370 110 A 10 10 0 0 1 380 120 L 380 135 L 200 135 Z" fill="#3b82f6" />
+  <text x="210" y="127" font-size="12" font-weight="700" fill="#ffffff">PHÂN HỆ KHÁCH HÀNG</text>
+
+  <!-- Package Admin -->
+  <rect x="485" y="110" width="270" height="530" rx="12" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5" filter="url(#shadow)" />
+  <path d="M 485 110 L 640 110 A 10 10 0 0 1 650 120 L 650 135 L 485 135 Z" fill="#ef4444" />
+  <text x="495" y="127" font-size="12" font-weight="700" fill="#ffffff">PHÂN HỆ QUẢN TRỊ</text>
+
+  <!-- ================= ACTOR: CUSTOMER (LEFT) ================= -->
+  <g transform="translate(45, 270)">
+    <!-- Stick figure -->
+    <circle cx="45" cy="30" r="18" fill="#dbeafe" stroke="#2563eb" stroke-width="3" />
+    <path d="M 45 48 L 45 95" stroke="#2563eb" stroke-width="3.5" />
+    <path d="M 18 68 L 72 68" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round" />
+    <path d="M 45 95 L 20 145" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round" />
+    <path d="M 45 95 L 70 145" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round" />
+    <rect x="-10" y="155" width="110" height="42" rx="8" fill="#2563eb" />
+    <text x="45" y="172" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">Khách Hàng</text>
+    <text x="45" y="188" text-anchor="middle" font-size="11" font-weight="500" fill="#bfdbfe">(Customer)</text>
+  </g>
+
+  <!-- ================= ACTOR: ADMIN (RIGHT) ================= -->
+  <g transform="translate(815, 270)">
+    <!-- Stick figure -->
+    <circle cx="45" cy="30" r="18" fill="#fee2e2" stroke="#dc2626" stroke-width="3" />
+    <path d="M 45 48 L 45 95" stroke="#dc2626" stroke-width="3.5" />
+    <path d="M 18 68 L 72 68" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round" />
+    <path d="M 45 95 L 20 145" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round" />
+    <path d="M 45 95 L 70 145" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round" />
+    <rect x="-10" y="155" width="110" height="42" rx="8" fill="#dc2626" />
+    <text x="45" y="172" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">Quản Trị Viên</text>
+    <text x="45" y="188" text-anchor="middle" font-size="11" font-weight="500" fill="#fecaca">(Admin)</text>
+  </g>
+
+  <!-- ================= USE CASES: CUSTOMER ================= -->
+  <!-- UC01 -->
+  <g id="uc01">
+    <ellipse cx="335" cy="170" rx="115" ry="24" fill="url(#custGrad)" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="335" y="174" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">UC01: Xem Phim &amp; Lịch Chiếu</text>
+  </g>
+  <!-- UC02 -->
+  <g id="uc02">
+    <ellipse cx="335" cy="235" rx="115" ry="24" fill="url(#custGrad)" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="335" y="239" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">UC02: Tìm Kiếm Phim AI (Gemini)</text>
+  </g>
+  <!-- UC03 -->
+  <g id="uc03">
+    <ellipse cx="335" cy="300" rx="115" ry="24" fill="url(#custGrad)" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="335" y="304" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">UC03: Chọn Ghế Real-time (10p)</text>
+  </g>
+  <!-- UC04 -->
+  <g id="uc04">
+    <ellipse cx="335" cy="370" rx="115" ry="24" fill="url(#custGrad)" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="335" y="374" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">UC04: Đặt Vé &amp; VietQR 24/7</text>
+  </g>
+  <!-- UC05 -->
+  <g id="uc05">
+    <ellipse cx="335" cy="445" rx="115" ry="24" fill="url(#custGrad)" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="335" y="449" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">UC05: Tra Cứu Vé Điện Tử (QR)</text>
+  </g>
+  <!-- UC06 -->
+  <g id="uc06">
+    <ellipse cx="335" cy="515" rx="115" ry="24" fill="url(#custGrad)" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="335" y="519" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">UC06: Đăng Ký / Đăng Nhập</text>
+  </g>
+  <!-- UC07 -->
+  <g id="uc07">
+    <ellipse cx="335" cy="585" rx="115" ry="24" fill="url(#custGrad)" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="335" y="589" text-anchor="middle" font-size="12" font-weight="600" fill="#1e3a8a">UC07: Xem Lịch Sử Vé Của Tôi</text>
+  </g>
+
+  <!-- ================= USE CASES: ADMIN ================= -->
+  <!-- UC08 -->
+  <g id="uc08">
+    <ellipse cx="620" cy="205" rx="115" ry="25" fill="url(#adminGrad)" stroke="#ef4444" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="620" y="210" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">UC08: Quản Lý Phim (CRUD)</text>
+  </g>
+  <!-- UC09 -->
+  <g id="uc09">
+    <ellipse cx="620" cy="305" rx="115" ry="25" fill="url(#adminGrad)" stroke="#ef4444" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="620" y="310" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">UC09: Xếp Lịch Chiếu (Chống Trùng)</text>
+  </g>
+  <!-- UC10 -->
+  <g id="uc10">
+    <ellipse cx="620" cy="415" rx="115" ry="25" fill="url(#adminGrad)" stroke="#ef4444" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="620" y="420" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">UC10: Quản Lý Đơn Đặt Vé</text>
+  </g>
+  <!-- UC11 -->
+  <g id="uc11">
+    <ellipse cx="620" cy="525" rx="115" ry="25" fill="url(#adminGrad)" stroke="#ef4444" stroke-width="1.8" filter="url(#shadow)" />
+    <text x="620" y="530" text-anchor="middle" font-size="12" font-weight="600" fill="#991b1b">UC11: Báo Cáo Doanh Thu &amp; Lấp Đầy</text>
+  </g>
+
+  <!-- ================= CONNECTIONS ================= -->
+  <!-- Customer to UCs -->
+  <line x1="120" y1="340" x2="225" y2="175" stroke="#64748b" stroke-width="1.6" />
+  <line x1="130" y1="350" x2="220" y2="238" stroke="#64748b" stroke-width="1.6" />
+  <line x1="135" y1="360" x2="220" y2="300" stroke="#64748b" stroke-width="1.6" />
+  <line x1="135" y1="375" x2="220" y2="370" stroke="#64748b" stroke-width="1.6" />
+  <line x1="135" y1="390" x2="220" y2="445" stroke="#64748b" stroke-width="1.6" />
+  <line x1="130" y1="405" x2="220" y2="512" stroke="#64748b" stroke-width="1.6" />
+  <line x1="120" y1="420" x2="225" y2="580" stroke="#64748b" stroke-width="1.6" />
+
+  <!-- Admin to UCs -->
+  <line x1="825" y1="340" x2="735" y2="210" stroke="#64748b" stroke-width="1.6" />
+  <line x1="820" y1="360" x2="735" y2="305" stroke="#64748b" stroke-width="1.6" />
+  <line x1="820" y1="380" x2="735" y2="415" stroke="#64748b" stroke-width="1.6" />
+  <line x1="825" y1="410" x2="735" y2="525" stroke="#64748b" stroke-width="1.6" />
+
+  <!-- <<include>> relation from UC04 to UC03 -->
+  <path d="M 335 346 L 335 328" stroke="#e11d48" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrowDash)" />
+  <rect x="345" y="328" width="80" height="18" rx="4" fill="#fff1f2" stroke="#fda4af" stroke-width="1" />
+  <text x="385" y="341" text-anchor="middle" font-size="10.5" font-weight="700" fill="#e11d48">&lt;&lt;include&gt;&gt;</text>
+</svg>

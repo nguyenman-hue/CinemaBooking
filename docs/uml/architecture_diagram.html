@@ -1,0 +1,198 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; } ::-webkit-scrollbar { display: none; } html, body { overflow: hidden; }
+  body {
+    background: #ffffff;
+    font-family: 'Times New Roman', Times, serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .diagram-container {
+    width: 900px;
+    background: #ffffff;
+    border: 2px solid #000000;
+    padding: 20px 25px 25px 25px;
+  }
+  .diagram-header {
+    text-align: center;
+    font-size: 16pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    border-bottom: 1.5px solid #000000;
+    padding-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .layer {
+    border: 1.5px solid #000000;
+    margin-bottom: 15px;
+    padding: 10px 14px 14px 14px;
+    position: relative;
+    background: #ffffff;
+  }
+  .layer-title {
+    font-size: 12pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    background: #ffffff;
+    display: inline-block;
+    padding: 0 8px;
+    margin-top: -20px;
+    margin-bottom: 8px;
+    border: 1px solid #000000;
+  }
+  .row-boxes {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+  }
+  .box {
+    flex: 1;
+    border: 1px solid #000000;
+    padding: 10px;
+    text-align: center;
+    background: #fafafa;
+  }
+  .box-title {
+    font-size: 11pt;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .box-desc {
+    font-size: 10pt;
+    color: #222222;
+    line-height: 1.35;
+  }
+  .arrow-down {
+    text-align: center;
+    font-size: 16pt;
+    font-weight: bold;
+    margin: -10px 0 -5px 0;
+    line-height: 1;
+  }
+  .two-cols {
+    display: flex;
+    gap: 14px;
+  }
+  .col-box {
+    flex: 1;
+    border: 1px dashed #000000;
+    padding: 10px;
+    background: #ffffff;
+  }
+  .tag {
+    font-weight: bold;
+    font-size: 10.5pt;
+    margin-bottom: 4px;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+<div class="diagram-container">
+  <div class="diagram-header">
+    SƠ ĐỒ KIẾN TRÚC TỔNG THỂ HỆ THỐNG STARLIGHT CINEMA HUẾ
+  </div>
+
+  <!-- TẦNG 1 -->
+  <div class="layer">
+    <div class="layer-title">1. TẦNG GIAO DIỆN NGƯỜI DÙNG (PRESENTATION LAYER - BLAZOR SERVER)</div>
+    <div class="row-boxes">
+      <div class="box">
+        <div class="box-title">Khách Hàng (Customer Portal)</div>
+        <div class="box-desc">• Xem phim &amp; Lịch chiếu<br>• Chọn ghế trực quan (Seat Map)<br>• Thanh toán VietQR &amp; Nhận vé QR<br>• Tra cứu vé &amp; Trợ lý AI</div>
+      </div>
+      <div class="box">
+        <div class="box-title">Quản Trị Viên (Admin Portal)</div>
+        <div class="box-desc">• Quản lý danh mục Phim (CRUD)<br>• Xếp lịch chiếu (Kiểm tra chồng giờ)<br>• Quản lý đơn hàng &amp; Vé đã bán<br>• Báo cáo doanh thu &amp; Tỷ lệ lấp đầy</div>
+      </div>
+      <div class="box">
+        <div class="box-title">Công Nghệ Tương Tác</div>
+        <div class="box-desc">• ASP.NET Core Blazor Server (.NET 8)<br>• Giao tiếp thời gian thực SignalR<br>• HTML5, CSS3, JavaScript Beacon<br>• Giao diện chuẩn Dark Neon Cinema</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down">&#9660; &#9660; &#9660;</div>
+
+  <!-- TẦNG 2 -->
+  <div class="layer">
+    <div class="layer-title">2. TẦNG NGHIỆP VỤ &amp; CỐT LÕI (APPLICATION &amp; DOMAIN - CLEAN ARCHITECTURE)</div>
+    <div class="two-cols">
+      <div class="col-box">
+        <div class="tag">Cinema.UseCases (Tầng Ứng Dụng)</div>
+        <div class="box-desc">
+          • Đặt vé &amp; Thanh toán: <code>CreateBookingUseCase</code><br>
+          • Giữ chỗ thời gian thực: <code>HoldSeatsUseCase</code><br>
+          • Sơ đồ ghế &amp; Phòng chiếu: <code>GetSeatMapUseCase</code><br>
+          • Quản lý Lịch chiếu: <code>CreateShowtimeUseCase</code><br>
+          • Trợ lý AI: <code>SemanticMovieSearchUseCase</code>
+        </div>
+      </div>
+      <div class="col-box">
+        <div class="tag">Cinema.CoreBusiness (Quy Tắc Nghiệp Vụ)</div>
+        <div class="box-desc">
+          • <b>Thực thể:</b> Movie, Showtime, Auditorium, Seat, Booking, Ticket, User.<br>
+          • <b>Luật 1 (Khóa ghế):</b> Giữ tối đa 10 phút, chống để lại ghế trống đơn lẻ.<br>
+          • <b>Luật 2 (Xếp lịch):</b> Không trùng giờ trong cùng một phòng chiếu.<br>
+          • Định nghĩa Plugin Interfaces (Ports &amp; Adapters).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down">&#9660; &#9660; &#9660;</div>
+
+  <!-- TẦNG 3 -->
+  <div class="layer">
+    <div class="layer-title">3. TẦNG DỊCH VỤ NGOÀI &amp; TÍCH HỢP HỆ THỐNG (EXTERNAL SERVICES &amp; INTEGRATIONS)</div>
+    <div class="row-boxes">
+      <div class="box">
+        <div class="box-title">Cổng Thanh Toán VietQR</div>
+        <div class="box-desc">Tạo mã QR thanh toán động 24/7 (MBBank) kèm mã đặt vé để xác nhận tự động</div>
+      </div>
+      <div class="box">
+        <div class="box-title">Trợ Lý AI Thông Minh</div>
+        <div class="box-desc">Google Gemini API kết hợp Google Search Grounding tìm kiếm &amp; tư vấn phim</div>
+      </div>
+      <div class="box">
+        <div class="box-title">Hệ Thống Email E-Ticket</div>
+        <div class="box-desc">SmtpEmailService tự động gửi vé điện tử kèm mã QR check-in vào Gmail khách</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down">&#9660; &#9660; &#9660;</div>
+
+  <!-- TẦNG 4 -->
+  <div class="layer">
+    <div class="layer-title">4. TẦNG LƯU TRỮ &amp; CƠ SỞ DỮ LIỆU (INFRASTRUCTURE &amp; DATA STORE)</div>
+    <div class="row-boxes">
+      <div class="box" style="flex: 1.2;">
+        <div class="box-title">Bộ Lưu Trữ Giữ Ghế Tạm Thời (In-Memory)</div>
+        <div class="box-desc">
+          • <code>SeatHoldingStateStore</code> (Singleton)<br>
+          • Kiểm soát tranh chấp ghế thời gian thực bằng <code>ConcurrentDictionary</code><br>
+          • Tự động giải phóng khi hết 10 phút hoặc tắt tab
+        </div>
+      </div>
+      <div class="box" style="flex: 1.8;">
+        <div class="box-title">Cơ Sở Dữ Liệu Quan Hệ (Microsoft SQL Server)</div>
+        <div class="box-desc">
+          • Truy cập dữ liệu hiệu năng cao qua Micro-ORM <b>Dapper</b><br>
+          • Các bảng chuẩn hóa: <code>Movies</code>, <code>Showtimes</code>, <code>Auditoriums</code>, <code>Seats</code>, <code>Bookings</code>, <code>Tickets</code>, <code>Users</code><br>
+          • Toàn vẹn giao dịch ACID (Database Transactions)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+
+

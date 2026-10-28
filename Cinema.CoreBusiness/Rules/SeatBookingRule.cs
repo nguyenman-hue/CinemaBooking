@@ -15,6 +15,7 @@ public static class SeatBookingRule
 {
     public const int MinSeatsPerBooking = 1;
     public const int MaxSeatsPerBooking = 8;
+    public const int HoldDurationMinutes = 10;
 
     /// <summary>
     /// Kiểm tra số lượng ghế yêu cầu trong 1 lần đặt vé
@@ -208,3 +209,4 @@ public static class SeatBookingRule
         }
     }
 }
+

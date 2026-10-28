@@ -1,12 +1,21 @@
 ﻿@page "/admin/reports"
 @attribute [Authorize(Roles = "Admin")]
 @inject IViewOccupancyReportUseCase ViewOccupancyReportUseCase
+@inject IJSRuntime JS
 
 <PageTitle>Báo Cáo Tỷ Lệ Lấp Đầy - Admin Starlight</PageTitle>
 
 <div class="container py-4">
-    <!-- Header -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom" style="border-color: rgba(255,255,255,0.08) !important;">
+    <!-- Header In Báo Cáo (Chỉ hiện khi In/Xuất PDF) -->
+    <div class="print-header">
+        <h3 class="fw-bold text-uppercase mb-1" style="color: #000;">RẠP CHIẾU PHIM STARLIGHT CINEMA HUẾ</h3>
+        <h4 class="fw-bold mb-2" style="color: #000;">BÁO CÁO TỔNG HỢP TỶ LỆ LẤP ĐẦY PHÒNG CHIẾU & DOANH THU</h4>
+        <p class="small mb-0" style="color: #444;">Thời điểm lập báo cáo: @DateTime.Now.ToString("HH:mm - dd/MM/yyyy") | Người lập: Quản trị viên hệ thống</p>
+        <hr style="border-top: 2px solid #000; margin: 10px 0 20px 0;" />
+    </div>
+
+    <!-- Header Giao Diện Web -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom no-print" style="border-color: rgba(255,255,255,0.08) !important;">
         <div>
             <h2 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
                 <i class="bi bi-pie-chart-fill text-warning"></i>
@@ -14,14 +23,19 @@
             </h2>
             <p class="text-muted mb-0">Thống kê hiệu suất bán vé, tỷ lệ lấp đầy ghế theo từng suất chiếu và doanh thu thực tế.</p>
         </div>
-        <button class="btn btn-outline-secondary btn-sm" @onclick="LoadReportAsync">
-            <i class="bi bi-arrow-clockwise me-1"></i>Làm mới báo cáo
-        </button>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="LoadReportAsync">
+                <i class="bi bi-arrow-clockwise me-1"></i>Làm mới báo cáo
+            </button>
+            <button class="btn btn-danger btn-sm d-flex align-items-center gap-1 shadow-sm px-3" @onclick="PrintReport" title="In hoặc xuất báo cáo ra file PDF phục vụ họp giao ban rạp">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i>In / Xuất Báo Cáo PDF
+            </button>
+        </div>
     </div>
 
     @if (_isLoading)
     {
-        <div class="text-center py-5">
+        <div class="text-center py-5 no-print">
             <div class="spinner-border text-warning" role="status"></div>
             <p class="text-muted mt-2">Đang tổng hợp dữ liệu báo cáo từ CSDL...</p>
         </div>
@@ -61,9 +75,9 @@
         </div>
 
         <!-- Occupancy Report Table -->
-        <div class="card card-clean p-4 shadow-sm">
+        <div class="card card-clean p-4 shadow-sm report-table-card">
             <h5 class="fw-bold text-white pb-2 border-bottom mb-3" style="border-color: rgba(255,255,255,0.08) !important;">
-                <i class="bi bi-table text-warning me-2"></i>Chi Tiết Tỷ Lệ Lấp Đầy Theo Suất Chiếu
+                <i class="bi bi-table text-warning me-2 no-print"></i>Chi Tiết Tỷ Lệ Lấp Đầy Theo Suất Chiếu
             </h5>
 
             <div class="table-responsive">
@@ -85,10 +99,10 @@
                             <tr>
                                 <td class="font-monospace text-muted">#@r.ShowtimeId</td>
                                 <td>
-                                    <strong class="text-white fs-6">@r.MovieTitle</strong>
+                                    <strong class="text-white fs-6 movie-title-text">@r.MovieTitle</strong>
                                 </td>
                                 <td><span class="badge badge-cinema-screen">@r.AuditoriumName</span></td>
-                                <td style="color: #cbd5e1;">@r.StartTime.ToString("HH:mm - dd/MM/yyyy")</td>
+                                <td style="color: #cbd5e1;" class="time-text">@r.StartTime.ToString("HH:mm - dd/MM/yyyy")</td>
                                 <td class="text-center">
                                     @if (r.BookedSeats > 0)
                                     {
@@ -108,12 +122,12 @@
                                                  aria-valuenow="@r.OccupancyRate" aria-valuemin="0" aria-valuemax="100">
                                             </div>
                                         </div>
-                                        <span class="fw-bold font-monospace" style="width: 50px; color: @GetRateTextColor(r.OccupancyRate); font-size: 0.9rem;">
+                                        <span class="fw-bold font-monospace rate-percent-text" style="width: 50px; color: @GetRateTextColor(r.OccupancyRate); font-size: 0.9rem;">
                                             @r.OccupancyRate.ToString("F1")%
                                         </span>
                                     </div>
                                 </td>
-                                <td class="text-end fw-bold fs-6" style="color: @(r.TotalRevenue > 0 ? "#f59e0b" : "#64748b");">
+                                <td class="text-end fw-bold fs-6 revenue-text" style="color: @(r.TotalRevenue > 0 ? "#f59e0b" : "#64748b");">
                                     @r.TotalRevenue.ToString("N0") đ
                                 </td>
                             </tr>
@@ -124,6 +138,61 @@
         </div>
     }
 </div>
+
+<style>
+    .print-header {
+        display: none;
+    }
+
+    @@media print {
+        .no-print, .cinema-navbar, header, footer, .sidebar {
+            display: none !important;
+        }
+        .print-header {
+            display: block !important;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        body, .container {
+            background: #ffffff !important;
+            color: #000000 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+        }
+        .card, .card-clean {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #000000 !important;
+            box-shadow: none !important;
+        }
+        .card-clean h3, .card-clean h5, .card-clean small, .movie-title-text, .time-text, .rate-percent-text, .revenue-text {
+            color: #000000 !important;
+        }
+        .table {
+            color: #000000 !important;
+            border: 1px solid #94a3b8 !important;
+        }
+        .table th, .table td {
+            border: 1px solid #cbd5e1 !important;
+            color: #000000 !important;
+        }
+        .badge-cinema-screen {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            border: 1px solid #94a3b8 !important;
+        }
+        .progress {
+            background: #e2e8f0 !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        .progress-bar {
+            background: #3b82f6 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+</style>
 
 @code {
     private List<OccupancyReportDto> _reports = new();
@@ -160,6 +229,11 @@
         }
     }
 
+    private async Task PrintReport()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+
     private string GetProgressBarGradient(decimal rate) => rate switch
     {
         >= 75 => "linear-gradient(90deg, #059669, #10b981)",
@@ -190,3 +264,4 @@
         _     => "#64748b"
     };
 }
+

@@ -1,8 +1,8 @@
-﻿@using Cinema.UseCases.PluginInterfaces.StateStore
+﻿@using Cinema.UseCases.Seats
 @inject NavigationManager Navigation
 @inject CustomAuthStateProvider AuthStateProvider
 @inject UserSessionService UserSession
-@inject ISeatHoldingStateStore HoldingStore
+@inject IHoldSeatsUseCase HoldSeatsUseCase
 @inject IJSRuntime JSRuntime
 
 <header class="cinema-navbar">
@@ -116,14 +116,14 @@
         {
             if (!string.IsNullOrWhiteSpace(UserSession.SessionId))
             {
-                HoldingStore.ReleaseAllBySession(UserSession.SessionId);
+                HoldSeatsUseCase.ReleaseAllBySession(UserSession.SessionId);
             }
             try
             {
                 var clientSessionId = await JSRuntime.InvokeAsync<string>("getCinemaSessionId");
                 if (!string.IsNullOrWhiteSpace(clientSessionId))
                 {
-                    HoldingStore.ReleaseAllBySession(clientSessionId);
+                    HoldSeatsUseCase.ReleaseAllBySession(clientSessionId);
                 }
             }
             catch { }
@@ -134,3 +134,4 @@
         Navigation.NavigateTo("/logout", forceLoad: true);
     }
 }
+

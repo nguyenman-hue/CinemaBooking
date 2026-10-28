@@ -1,9 +1,7 @@
 ﻿@using Cinema.CoreBusiness.Rules
-@using Cinema.UseCases.PluginInterfaces.StateStore
 @implements IDisposable
 @inject IGetSeatMapUseCase GetSeatMapUseCase
 @inject IHoldSeatsUseCase HoldSeatsUseCase
-@inject ISeatHoldingStateStore HoldingStore
 @inject UserSessionService UserSession
 @inject IJSRuntime JS
 
@@ -186,7 +184,7 @@
 
     protected override void OnInitialized()
     {
-        HoldingStore.OnSeatsChanged += HandleExternalSeatsChanged;
+        HoldSeatsUseCase.OnSeatsChanged += HandleExternalSeatsChanged;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -209,7 +207,7 @@
                 var clientSessionId = await JS.InvokeAsync<string>("getCinemaSessionId");
                 if (!string.IsNullOrWhiteSpace(clientSessionId))
                 {
-                    HoldingStore.CancelScheduledSessionRelease(clientSessionId);
+                    HoldSeatsUseCase.CancelScheduledSessionRelease(clientSessionId);
                     if (clientSessionId != UserSession.SessionId)
                     {
                         UserSession.SetSessionId(clientSessionId);
@@ -248,7 +246,7 @@
         _loadError = null;
         try
         {
-            HoldingStore.CleanExpiredHolds();
+            HoldSeatsUseCase.CleanExpiredHolds();
             var result = await GetSeatMapUseCase.ExecuteAsync(ShowtimeId, UserSession.SessionId);
             _seats = result.ToList();
 
@@ -263,7 +261,7 @@
                         _selectedSeatIds.Add(id);
                     }
 
-                    var expiry = HoldingStore.GetHoldExpiryTime(ShowtimeId, UserSession.SessionId);
+                    var expiry = HoldSeatsUseCase.GetHoldExpiry(ShowtimeId, UserSession.SessionId);
                     if (expiry.HasValue && expiry.Value > DateTime.UtcNow)
                     {
                         _holdExpiryUtc = expiry.Value;
@@ -422,7 +420,7 @@
                 return;
             }
 
-            bool holdSuccess = HoldSeatsUseCase.TryHold(ShowtimeId, new[] { seat.SeatId }, UserSession.SessionId, TimeSpan.FromMinutes(10));
+            bool holdSuccess = HoldSeatsUseCase.TryHold(ShowtimeId, new[] { seat.SeatId }, UserSession.SessionId);
             if (!holdSuccess)
             {
                 SetError($"Ghế {seat.SeatDisplayName} vừa bị người khác chọn trước. Vui lòng chọn ghế khác!");
@@ -540,8 +538,9 @@
 
     public void Dispose()
     {
-        HoldingStore.OnSeatsChanged -= HandleExternalSeatsChanged;
+        HoldSeatsUseCase.OnSeatsChanged -= HandleExternalSeatsChanged;
         StopTimer();
     }
 }
+
 

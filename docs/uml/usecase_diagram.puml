@@ -1,28 +1,30 @@
 ﻿@startuml
-left to right direction
 skinparam packageStyle rectangle
 skinparam actorStyle awesome
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
 
-actor "Khách Hàng (Customer)" as Customer
-actor "Quản Trị Viên (Admin)" as Admin
+actor "Khách Hàng\n(Customer)" as Customer #DarkOrange
+actor "Quản Trị Viên\n(Admin)" as Admin #SteelBlue
 
-rectangle "Hệ Thống Đặt Vé Rạp Phim - Starlight Cinema Huế" {
-    package "Phân Hệ Khách Hàng (Customer Portal)" {
+rectangle "HỆ THỐNG ĐẶT VÉ RẠP PHIM - STARLIGHT CINEMA HUẾ" {
+    package "Phân Hệ Khách Hàng" {
         usecase "UC01: Xem Phim & Lịch Chiếu" as UC01
-        usecase "UC02: Tìm Kiếm Phim Ngữ Nghĩa (AI)" as UC02
-        usecase "UC03: Chọn Ghế & Giữ Chỗ Real-time (10p)" as UC03
-        usecase "UC04: Đặt Vé & Nhận E-Ticket Qua Gmail" as UC04
-        usecase "UC05: Tra Cứu Vé Bằng Mã (BookingRef)" as UC05
-        usecase "UC06: Đăng Ký Tài Khoản Thành Viên" as UC06
-        usecase "UC07: Đăng Nhập & Xem Vé Của Tôi" as UC07
+        usecase "UC02: Tìm Kiếm Phim AI (Gemini)" as UC02
+        usecase "UC03: Chọn Ghế Real-time (Giữ 10p)" as UC03
+        usecase "UC04: Đặt Vé & VietQR 24/7" as UC04
+        usecase "UC05: Tra Cứu Vé Điện Tử (QR)" as UC05
+        usecase "UC06: Đăng Ký / Đăng Nhập" as UC06
+        usecase "UC07: Xem Lịch Sử Vé Của Tôi" as UC07
     }
 
-    package "Phân Hệ Quản Trị (Admin Portal)" {
-        usecase "UC08: Đăng Nhập Quản Trị" as UC08
-        usecase "UC09: Quản Lý Phim (CRUD)" as UC09
-        usecase "UC10: Quản Lý Suất Chiếu (Luật 2)" as UC10
-        usecase "UC11: Báo Cáo Tỷ Lệ Lấp Đầy" as UC11
-        usecase "UC12: Quản Lý Đơn Đặt Vé" as UC12
+    package "Phân Hệ Quản Trị" {
+        usecase "UC08: Quản Lý Phim (CRUD)" as UC08
+        usecase "UC09: Xếp Lịch Chiếu (Chống Trùng)" as UC09
+        usecase "UC10: Quản Lý Đơn Đặt Vé" as UC10
+        usecase "UC11: Báo Cáo Doanh Thu & Lấp Đầy" as UC11
     }
 }
 
@@ -38,10 +40,6 @@ Admin --> UC08
 Admin --> UC09
 Admin --> UC10
 Admin --> UC11
-Admin --> UC12
 
 UC04 ..> UC03 : <<include>>
-UC10 ..> UC08 : <<include>>
-UC09 ..> UC08 : <<include>>
-UC11 ..> UC08 : <<include>>
 @enduml

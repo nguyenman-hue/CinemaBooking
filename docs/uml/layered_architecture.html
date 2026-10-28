@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  ::-webkit-scrollbar { display: none; }
+  html, body { overflow: hidden; }
+  body { background: #fff; color: #000; font-family: 'Times New Roman', Times, serif; padding: 10px; width: 920px; }
+  .wrap { border: 2px solid #000; padding: 18px 24px 22px 24px; }
+  .title { text-align: center; font-size: 16pt; font-weight: bold; text-transform: uppercase; border-bottom: 1.5px solid #000; padding-bottom: 8px; margin-bottom: 18px; }
+  .layer { border: 2px solid #000; padding: 10px 14px 12px 14px; }
+  .layer h3 { font-size: 12.5pt; margin-bottom: 6px; }
+  .layer p, .layer li { font-size: 11pt; line-height: 1.4; }
+  .layer ul { margin-left: 20px; }
+  .row { display: flex; gap: 12px; margin-top: 6px; }
+  .sub { flex: 1; border: 1px solid #000; padding: 8px 10px; }
+  .sub b { display: block; font-size: 11pt; margin-bottom: 3px; text-align: center; }
+  .sub p { font-size: 10.5pt; text-align: center; }
+  .arrow { text-align: center; font-size: 11pt; font-weight: bold; margin: 4px 0; line-height: 1.2; }
+  .arrow span { font-size: 16pt; display: block; line-height: 1; }
+  .note { margin-top: 14px; border-top: 1px dashed #000; padding-top: 8px; font-size: 10.5pt; text-align: center; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">Kiến trúc phân tầng của hệ thống Starlight Cinema Huế</div>
+
+  <div class="layer">
+    <h3>Tầng 4 – Cinema.Web (Tầng giao diện người dùng)</h3>
+    <ul>
+      <li>Blazor Web App (Interactive Server)</li>
+      <li>Composition Root: đăng ký Dependency Injection cho toàn hệ thống</li>
+    </ul>
+  </div>
+
+  <div class="arrow"><span>&#9660;</span>phụ thuộc vào</div>
+
+  <div class="layer">
+    <h3>Tầng 3 – Plugins (Tầng hạ tầng kỹ thuật)</h3>
+    <div class="row">
+      <div class="sub">
+        <b>Cinema.DataStore.SQL.Dapper</b>
+        <p>Hiện thực các Interface kho lưu trữ bằng Dapper, truy vấn SQL Server</p>
+      </div>
+      <div class="sub">
+        <b>Cinema.StateStore.DI</b>
+        <p>Bộ nhớ trạng thái tạm thời trong RAM (ConcurrentDictionary) quản lý phiên giữ ghế 10 phút</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><span>&#9660;</span>phụ thuộc vào</div>
+
+  <div class="layer">
+    <h3>Tầng 2 – Cinema.UseCases (Tầng nghiệp vụ tương tác)</h3>
+    <ul>
+      <li>Các ca sử dụng: CreateBookingUseCase, GetSeatMapUseCase, ViewOccupancyReportUseCase...</li>
+      <li>Định nghĩa các Interface kho lưu trữ: IMovieRepository, IShowtimeRepository...</li>
+    </ul>
+  </div>
+
+  <div class="arrow"><span>&#9660;</span>phụ thuộc vào</div>
+
+  <div class="layer">
+    <h3>Tầng 1 – Cinema.CoreBusiness (Tầng trung tâm)</h3>
+    <ul>
+      <li>Domain Entities: Movie, Showtime, Seat, Booking, Ticket</li>
+      <li>2 quy tắc nghiệp vụ cốt lõi của rạp chiếu phim</li>
+      <li>Độc lập tuyệt đối, không tham chiếu thư viện hay tầng nào khác</li>
+    </ul>
+  </div>
+
+  <div class="note">Quy tắc phụ thuộc: tầng ngoài chỉ phụ thuộc vào tầng trong; Tầng 1 không phụ thuộc vào bất kỳ tầng nào.</div>
+</div>
+</body>
+</html>
+

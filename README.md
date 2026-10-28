@@ -4,7 +4,7 @@
 **Đề tài 14:** Rạp phim: Chọn ghế & Đặt vé - Cinema Seat Booking  
 **Độ khó:** ★★★ (3 sao - Thang điểm 9.0 - 10.0)  
 **Sinh viên thực hiện:** Nguyễn Viết Mẫn  
-**Mã số sinh viên (MSSV):** 23K4080026 — Lớp: K46/21.02  
+**Mã số sinh viên (MSSV):** 23K4080026 — Lớp: K57 Tin Học Kinh Tế  
 **GitHub Repository:** [https://github.com/nguyenman-hue/CinemaBooking](https://github.com/nguyenman-hue/CinemaBooking)
 
 ---
@@ -42,7 +42,7 @@ Dự án được cấu trúc nghiêm ngặt theo mô hình **Clean Architecture
   - Một ghế trong một suất chiếu chỉ được bán DUY NHẤT một lần, kể cả khi 2 người bấm thanh toán cùng lúc.
   - Cơ chế bảo vệ 2 lớp:
     1. Kiểm tra trạng thái ghế khả dụng tại `SeatBookingRule.cs` và State Store `SeatHoldingStateStore.cs`.
-    2. Ràng buộc toàn vẹn `CONSTRAINT UQ_Ticket_Showtime_Seat UNIQUE(ShowtimeId, SeatId)` trong SQL Server kết hợp `IDbTransaction` trong `BookingRepository.cs` (tự động rollback nếu xảy ra vi phạm).
+    2. Ràng buộc toàn vẹn `CONSTRAINT UQ_Showtime_Seat UNIQUE(ShowtimeId, SeatId)` trong SQL Server kết hợp `IDbTransaction` trong `BookingRepository.cs` (tự động rollback nếu xảy ra vi phạm).
 - **LUẬT 2 (Không chồng giờ - Showtime Non-Overlapping):**
   - Các suất chiếu cùng phòng chiếu không được phép chồng giờ.
   - Thời gian kết thúc tự động tính: `EndTime = StartTime + MovieDuration + 15 phút dọn dẹp vệ sinh phòng chiếu`.
@@ -84,3 +84,4 @@ Dự án được cấu trúc nghiêm ngặt theo mô hình **Clean Architecture
 4. **Tài khoản Demo Đăng nhập:**
    - **Quản trị viên (Admin):** `admin` / Mật khẩu: `admin123`
    - **Khách hàng (Customer):** `khachhang` / Mật khẩu: `khach123` (hoặc đăng ký mới trên Web)
+
