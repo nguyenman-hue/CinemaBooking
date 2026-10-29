@@ -1,4 +1,4 @@
-﻿@startuml
+@startuml
 autonumber
 actor "Khách Hàng (Customer)" as Customer
 participant "BookingPage\n(UI Razor)" as UI
@@ -34,7 +34,7 @@ UseCase -> Repo : CreateBookingWithTicketsAsync(booking, tickets)
 activate Repo
 Repo -> DB : BEGIN TRANSACTION
 Repo -> DB : INSERT INTO dbo.Booking ... (Header)
-Repo -> DB : INSERT INTO dbo.Ticket ... (Lines với UQ_Ticket_Showtime_Seat)
+Repo -> DB : INSERT INTO dbo.Ticket ... (Lines với UQ_Showtime_Seat)
 DB --> Repo : Ghi thành công
 Repo -> DB : COMMIT TRANSACTION
 Repo --> UseCase : Trả về BookingReference (BK-YYYYMMDD-XXXXXX)
